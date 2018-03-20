@@ -18,7 +18,7 @@ Currently the number of cores cannot be specified, however you can expect it to 
 	*Note if your machine does not have the the number of required cores, the program will still run, just not as fast as it could, additionally it will become difficult to do other tasks on the machine if there are no free cores available while the program is running*
 
 Additionally this version does not use the same digamma (psi) function or polygamma function from scipy as the original msCentipede did.     
-Instead this version uses a digamma function developed by [Jose Bernarda](http://people.sc.fsu.edu/~jburkardt/py_src/asa103/asa103.html) and uses a modified polygamma fucntion that does not need to recompute the digamma function as scipy's version does.
+Instead this version uses a digamma function developed by [Jose Bernarda](http://people.sc.fsu.edu/~jburkardt/py_src/asa103/asa103.html) and uses a modified polygamma function that does not need to recompute the digamma function as scipy's version does.
 
 ---
 
