@@ -3,7 +3,7 @@
 **originally forked from** [rajanil](https://github.com/rajanil/msCentipede)
 
 This version of msCentipede uses multiple cores (the original uses one).    
-Currently the number of cores cannot be specified, however you can expect it to use the followinga:
+Currently the number of cores cannot be specified, however you can expect it to use the following:
 
 + if DNase-seq with default window:    
 	+ 8 cores near full time    
