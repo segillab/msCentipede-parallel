@@ -1,19 +1,24 @@
 # msCentipede-parallel
 
 **originally forked from** [rajanil](https://github.com/rajanil/msCentipede)
-This version of msCentipede uses multiple cores (the original uses one).
-Currently the number of cores cannot be specified, however you can expect it to use the following:
-	if DNase-seq with default window:
-		8 cores near full time
-		3 cores briefly for each of those 8
-		24 cores total at times
-	if ATAQ-seq with default window:
-		7 cores near full time
-		3 cores briefly for each of those 7
-		21 cores total at times
-	*If you modify the window size the core number will change (Decreasing window size will reduce core demand and vice versa)*
+
+This version of msCentipede uses multiple cores (the original uses one).    
+Currently the number of cores cannot be specified, however you can expect it to use the followinga:
+
+	+ if DNase-seq with default window:    
+		+ 8 cores near full time    
+		+ 3 cores briefly for each of those 8    
+		+ 24 cores total at times    
+	+ if ATAQ-seq with default window:    
+		+ 7 cores near full time    
+		+ 3 cores briefly for each of those 7    
+		+ 21 cores total at times    
+
+	*If you modify the window size the core number will change (Decreasing window size will reduce core demand and vice versa)*     
 	*Note if your machine does not have the the number of required cores, the program will still run, just not as fast as it could, additionally it will become difficult to do other tasks on the machine if there are no free cores available while the program is running*
-Additionally this version does not use the same digamma (psi) function or polygamma function from scipy as the original msCentipede did. Instead this version uses a digamma function developed by [Jose Bernarda](http://people.sc.fsu.edu/~jburkardt/py_src/asa103/asa103.html) and uses a modified polygamma fucntion that does not need to recompute the digamma function as scipy's version does.
+
+Additionally this version does not use the same digamma (psi) function or polygamma function from scipy as the original msCentipede did.     
+Instead this version uses a digamma function developed by [Jose Bernarda](http://people.sc.fsu.edu/~jburkardt/py_src/asa103/asa103.html) and uses a modified polygamma fucntion that does not need to recompute the digamma function as scipy's version does.
 
 **msCentipede** is an algorithm for accurately inferring transcription factor binding sites using chromatin
 accessibility data (Dnase-seq, ATAC-seq) and is written in Python2.x and Cython. 
