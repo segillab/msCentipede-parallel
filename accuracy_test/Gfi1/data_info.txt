@@ -1,0 +1,22 @@
+Gfi1 ChIP-seq in Mouse Granulocyte Monocyte Progenitor
+
+ref: Single-cell analysis of mixed-lineage states leading to a binary cell fate choice
+
+Mouse C57BL/6
+
+GSE70237
+
+Genome: mm9
+
+
+ATACseq Granulocyte Monocyte Progenitor
+
+Ref:
+
+Mouse C57BL/6 
+
+GSE60103
+
+Genome: mm9
+
+

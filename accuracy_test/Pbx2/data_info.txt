@@ -1,0 +1,9 @@
+Dataset1: Pbx2 ChIPseq in K562 cell line
+
+GSE96277
+
+Genome: hg38
+
+Dataset2: DNase-seq in K562 cell line
+
+Genome: hg38

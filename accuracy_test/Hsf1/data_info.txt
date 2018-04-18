@@ -1,0 +1,11 @@
+Dataset1: Hsf1 ChIPseq in GM12878 cell line
+
+GSE105189
+
+genome: hg19
+
+Dataset2 DNaseq in GM12878 cell line
+
+genome: hg19
+
+

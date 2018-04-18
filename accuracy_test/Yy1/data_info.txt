@@ -1,0 +1,9 @@
+Dataset1: Yy1 ChIPseq in GM12878 cell line
+
+GSM803406
+
+genome: hg19
+
+Dataset2: DNase-seq GM12878 cell line
+
+genomeL hg19

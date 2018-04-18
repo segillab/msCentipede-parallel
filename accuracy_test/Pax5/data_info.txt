@@ -1,0 +1,9 @@
+Dataset1: Pax5 ChIPseq from GM12878 cell line
+
+GSM803391
+
+genome: hg19
+
+Dataset2: DNase-seq in GM12878
+
+genome hg19

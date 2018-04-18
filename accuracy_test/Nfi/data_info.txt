@@ -1,0 +1,15 @@
+Nfi ChIP-seq in MEF (mouse embryonic fibroblasts)
+
+ref: Nuclear Factor I reveals as family of promoter binding transcription activators
+
+GSE15844
+
+genome: mm9
+
+DNase-seq in MEF
+
+ref: 
+
+SRX796316, SRX796337
+
+genome: mm9

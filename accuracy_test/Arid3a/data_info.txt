@@ -1,0 +1,27 @@
+Arid3a ChIPseq in GM12878
+
+ref Encode TF ChIPseq
+
+GSE106034
+
+genome hg19
+
+DNase_seq in GM12878 human cell line
+
+ref: Encode DNaseI hypersensitivity
+
+GSE29692
+
+Genome: hg19
+
+H3k27ac ChIPseq in GM12878 human cell line
+
+genome hg19
+
+GSE733771
+
+H3k27m3 ChIPseq in GM12878 human cell line
+
+genome hg19
+
+GSE733758

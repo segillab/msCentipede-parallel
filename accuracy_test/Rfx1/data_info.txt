@@ -1,0 +1,13 @@
+Rfx1 ChIPseq in K562
+
+ref: Encode TF ChIPseq
+
+genome GRCh38(hg38)
+
+
+
+DNase-seq in K562
+
+ref: Encode DNase-seq
+
+genome GRCh38(hg38)

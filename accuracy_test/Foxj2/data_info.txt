@@ -1,0 +1,13 @@
+Foxj2 ChIP-seq in K562
+
+ref: Encode ChIP-seq
+
+genome GRCh38(hg38)
+
+
+
+DNase-seq in K562
+
+ref: Encode DNase-seq
+
+genome GRCh38(hg38)

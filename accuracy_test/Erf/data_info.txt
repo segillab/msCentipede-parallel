@@ -1,0 +1,15 @@
+Erf ChIP-seq in mouse embroynic fibroblast
+
+ref: Reduced dosage of Erf causes complex craniosynostosis in humans and mice and links ERF1/2 signaling to reuglation of osterogenesis
+
+GSE42963
+
+genome: mm9
+
+DNase-seq in mouse embryo fibroblast cell line (NIH3T3-L1)
+
+ref: 
+
+SRX796316, SRX796337
+
+genome: mm9

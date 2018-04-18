@@ -1,0 +1,15 @@
+Dataset1:
+
+Gtf2a2 ChIPseq in K562
+
+GSE92066
+
+Genome: hg38
+
+Dataset2: 
+
+Dataset2:
+
+DNase-seq in K562
+
+genome: hg38

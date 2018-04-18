@@ -1,0 +1,9 @@
+Dataset1: Stat5a ChIPseq in GM12878 cell line
+
+GSM1010721
+
+Genome: hg19
+
+Dataset2: DNase-seq in GM12878 cell line
+
+Genome: hg19

@@ -1,0 +1,9 @@
+Dataset1: Mef2d ChIPseq in K562 cell line
+
+GSE91949
+
+genome: hg38
+
+Dataset2: DNase-seq in K562 cell line
+
+genome: hg38

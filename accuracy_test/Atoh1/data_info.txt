@@ -1,0 +1,21 @@
+Dataset1:
+
+Atoh1 ChIPseq in P5 mouse cerebellum
+
+ref: In vivo Atoh1 targetome reveals how a proneural transcription factor regulates cerebellar development
+
+GSE22111
+
+Atoh1 binding regions: dataset S02
+
+Genome: mm9
+
+Dataset2:
+
+P7 mouse cerebellum DNase-seq
+
+ref: Regulation of chromatin accessibility and Zic binding at enhancers in the developing cerebellum
+
+GSE60731
+
+Genome mm9

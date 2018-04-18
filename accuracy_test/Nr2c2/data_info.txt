@@ -1,0 +1,9 @@
+Dataset1: Nr2c2 ChIPseq in K562 cell line
+
+GSE105970
+
+genome: hg38
+
+Dataset2: DNase-seq in K562 cell line
+
+genome: hg38

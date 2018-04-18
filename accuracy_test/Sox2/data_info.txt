@@ -1,0 +1,25 @@
+Sox2 ChIPseq in LoVo (ATCC CCL-229)
+
+ref: Transcription factor binding in human cells occurs in dense clusters around cohesin anchor sites
+
+GSE49402
+
+genome: hg18
+
+
+DNAse-seq in LoVo (1,2) (ATCC CCl-229)
+
+ref: Encode DNase-seq
+
+GSE90348
+
+genome: GCRh38 (hg38)
+
+
+DNase-seq in LoVo (3) (ATCC CCL-229)
+
+ref: The non-coding variant rs1800734 enhances DCLK3 expression through long-range interaction and promotes colorectal cancer progression
+
+GSE83968
+
+genome: hg19

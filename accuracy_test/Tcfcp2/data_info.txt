@@ -1,0 +1,9 @@
+Dataset1: Tfcp2 ChIPseq in LoVo human cell line (Failed QC)
+
+GSE51142
+
+Genome: hg18
+
+Dataset2: DNase-seq in LoVo human cell line
+
+Genome: hg38

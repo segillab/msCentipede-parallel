@@ -1,0 +1,13 @@
+Lhx3 ChIPseq in Ainv15 48h after induction of NIL factors
+
+ref: A multi-step transcriptional and chromatin state cascade underlies moter neuron programming from embryonic stem cells
+
+GSE80483
+
+genome: mm10
+
+ATACseq in Ainv15 48h after induction of NIL factors
+
+ref: the same
+
+genome: mm10

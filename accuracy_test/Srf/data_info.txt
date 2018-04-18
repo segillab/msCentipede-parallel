@@ -1,0 +1,9 @@
+Dataset1: Srf ChIPseq in GM12878 cell line
+
+GSM803350
+
+genome: hg19
+
+Dataset2: DNase-seq in GM12878 cell line
+
+genome: hg19

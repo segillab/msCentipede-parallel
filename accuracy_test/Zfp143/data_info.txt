@@ -1,0 +1,9 @@
+Dataset1: Zfp143 ChIPseq in GM12878 cell line
+
+GSE92177
+
+Genome: hg19
+
+Dataset2: DNase-seq in GM12878 cell line
+
+Genome: hg19

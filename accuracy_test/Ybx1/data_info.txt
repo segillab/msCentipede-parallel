@@ -1,0 +1,11 @@
+Dataset1: Ybx1 ChIPseq in K562 cell line
+
+GSE91492
+
+Genome: hg38
+
+Dataset2: DNase-seq in K562 cell line
+
+Genome: hg38
+
+

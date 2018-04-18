@@ -1,0 +1,9 @@
+Dataset1: Mtf1 ChIPseq in LoVo human cell line (Failed QC)
+
+GSE51142
+
+Genome: hg18
+
+Dataset2: DNase-seq in LoVo human cell ine
+
+Genome: hg38

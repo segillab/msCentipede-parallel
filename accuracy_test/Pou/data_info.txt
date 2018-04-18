@@ -1,0 +1,22 @@
+Dataset 1:
+
+Pou2f2 ChIPseq in GM12878 human cell line
+
+ref: Encode TF ChIP-seq
+
+GSE32465
+
+Genome: hg19
+
+Dataset 2:
+
+DNase_seq in GM12878 human cell line
+
+ref: Encode DNaseI hypersensitivity
+
+GSE29692
+
+Genome: hg19
+
+
+

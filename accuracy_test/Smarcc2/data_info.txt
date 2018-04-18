@@ -1,0 +1,9 @@
+Dataset1: Smarcc2 ChIPseq in K562 cell line
+
+ENCODE
+
+genome: hg38
+
+Dataset2: DNase-seq in K562 cell line
+
+Genome: hg38

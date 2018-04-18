@@ -1,0 +1,9 @@
+Dataset1: Hmga2 ChIPseq in MEF 
+
+GSE63861
+
+Genome: mm10
+
+Dataset2: DNase-seq in MEF
+
+Genome: mm9

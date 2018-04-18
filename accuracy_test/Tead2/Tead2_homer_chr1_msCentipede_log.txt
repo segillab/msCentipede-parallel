@@ -1,0 +1,23 @@
+model = msCentipede
+window size = 128
+motif file: Tead2_homer_chr1.fimo.txt.gz
+bam files: ../Barhl1/LoVo_DNase_3.bam
+loading motifs ... done
+num of motif sites = 10000
+loading read counts ... done
+transforming data into multiscale representation ...done
+starting model estimation (restart 1)
+initial log likelihood = -4.46e+01
+iteration 1: log likelihood = -2.05e+01, change in log likelihood = 2.41e+01, iteration time = 660.567 secs
+iteration 2: log likelihood = -2.05e+01, change in log likelihood = -5.31e-03, iteration time = 724.377 secs
+iteration 3: log likelihood = -2.05e+01, change in log likelihood = 8.74e-03, iteration time = 801.381 secs
+iteration 4: log likelihood = -2.05e+01, change in log likelihood = -1.61e-02, iteration time = 741.902 secs
+iteration 5: log likelihood = -2.05e+01, change in log likelihood = 1.75e-02, iteration time = 785.388 secs
+iteration 6: log likelihood = -2.05e+01, change in log likelihood = -1.23e-03, iteration time = 789.898 secs
+iteration 7: log likelihood = -2.05e+01, change in log likelihood = 1.21e-03, iteration time = 779.284 secs
+iteration 8: log likelihood = -2.05e+01, change in log likelihood = -1.18e-03, iteration time = 793.220 secs
+iteration 9: log likelihood = -2.05e+01, change in log likelihood = 4.25e-04, iteration time = 830.016 secs
+iteration 10: log likelihood = -2.05e+01, change in log likelihood = -1.95e-02, iteration time = 817.739 secs
+iteration 11: log likelihood = -2.05e+01, change in log likelihood = 1.93e-02, iteration time = 825.995 secs
+iteration 12: log likelihood = -2.05e+01, change in log likelihood = 2.27e-07, iteration time = 831.058 secs
+writing model to file ... done
