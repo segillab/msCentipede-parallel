@@ -6,6 +6,8 @@ import mscentipede
 import argparse
 import warnings
 import time
+import math
+import gzip
 
 # ignore warnings with these expressions
 warnings.filterwarnings('ignore', '.*overflow encountered.*',)
@@ -28,7 +30,6 @@ def learn_model(options):
     handle.write(log)
     handle.close()
     print log
-    print time.time()
 
     motif_handle = load_data.ZipFile(options.motif_file)
     locations = motif_handle.read()
@@ -158,7 +159,19 @@ def infer_binding(options):
     pipe = load_data.subprocess.Popen("zcat %s | wc -l"%options.motif_file, \
         stdout=load_data.subprocess.PIPE, shell=True)
     Ns = int(pipe.communicate()[0].strip())
-    loops = Ns/options.batch+1
+
+    try:
+        with gzip.open(options.motif_file, 'r') as header_check:
+            header_line = header_check.readline()
+            int(header_line.split('\t')[1])
+    except ValueError as e:
+        # This means there was a header
+        Ns = Ns - 1
+    else:
+        # This means there was no header
+        pass
+    
+    loops = int(math.ceil(float(Ns) / options.batch))
 
     # open gzip file to save inference
     handle = load_data.gzip.open(options.posterior_file, "wb")
