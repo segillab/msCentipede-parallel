@@ -465,104 +465,41 @@ class Tau():
         self.J = J
         self.estim = np.empty((self.J,), dtype='float')
 
+    def __reduce__(self):
+        return (rebuild_Tau, (self.J,self.estim))
+
     def update(self, data, zeta, pi):
         """Update the estimates of parameter `tau` (and `tau_o`) in the model.
         """
 
-        def function(x, kwargs):
-            """Computes part of the likelihood function that has
-            terms containing `tau`.
-            """
+        zetaestim = np.sum(zeta.estim[:,1])
+        print "Number of Optimizer calls: %s" % str(self.J)
 
-            data = kwargs['data']
-            zeta = kwargs['zeta']
-            pi = kwargs['pi']
-            j = kwargs['j']
-
-            func = np.zeros(zeta.estim[:,1].shape, dtype=float)
-            # loop over replicates
-            for r in xrange(data.R):
-                F = gammaln(data.value[j][r] + pi.value[j] * x) \
-                    + gammaln(data.total[j][r] - data.value[j][r] + (1 - pi.value[j]) * x) \
-                    - gammaln(data.total[j][r] + x) + gammaln(x) \
-                    - gammaln(pi.value[j] * x) - gammaln((1 - pi.value[j]) * x)
-                func += np.sum(F, 1)
-
-            F = -1. * np.sum(zeta.estim[:,1] * func)
-            return F
-
-        def gradient(x, kwargs):
-            """Computes gradient of the likelihood function with respect to `tau`.
-            """
-
-            data = kwargs['data']
-            zeta = kwargs['zeta']
-            pi = kwargs['pi']
-            j = kwargs['j']
-
-            # loop over replicates
-            Df = np.empty((1,), dtype='float')
-            df = np.zeros(zeta.estim[:,1].shape, dtype=float)
-            for r in xrange(data.R):
-                f = pi.value[j] * digamma(data.value[j][r] + pi.value[j] * x) \
-                    + (1 - pi.value[j]) * digamma(data.total[j][r] - data.value[j][r] + (1 - pi.value[j]) * x) \
-                    - digamma(data.total[j][r] + x) + digamma(x) \
-                    - pi.value[j] * digamma(pi.value[j] * x) - (1 - pi.value[j]) * digamma((1 - pi.value[j]) * x)
-                df += np.sum(f, 1)
-            Df[0] = -1 * np.sum(zeta.estim[:,1] * df)
-            return Df
-
-        def hessian(x, kwargs):
-            """Computes hessian of the likelihood function with respect to `tau`.
-            """
-
-            data = kwargs['data']
-            zeta = kwargs['zeta']
-            pi = kwargs['pi']
-            j = kwargs['j']
-
-            # loop over replicates
-            hess = np.empty((1,), dtype='float')
-            hf = np.zeros(zeta.estim[:,1].shape, dtype=float)
-            for r in xrange(data.R):
-                f = pi.value[j]**2 * polygamma(1, data.value[j][r] + pi.value[j] * x) \
-                    + (1 - pi.value[j])**2 * polygamma(1, data.total[j][r] - data.value[j][r] + (1 - pi.value[j]) * x) \
-                    - polygamma(1, data.total[j][r] + x) + polygamma(1, x) \
-                    - pi.value[j]**2 * polygamma(1, pi.value[j] * x) \
-                    - (1 - pi.value[j])**2 * polygamma(1, (1 - pi.value[j]) * x)
-                hf += np.sum(f, 1)
-            hess[0] = -1 * np.sum(zeta.estim[:,1] * hf)
-
-            Hf = np.diag(hess)
-            return Hf
+        arg_vals = []
+        minj_vals = []
+        xmin_vals = []
 
         for j in xrange(self.J):
-
-            # initialize optimization variables
             xo = self.estim[j:j+1]
 
             # set constraints for optimization variables
+            minj = 1./min([np.min(pi.value[j]), np.min(1-pi.value[j])])
+            minj_vals.append(minj)
+            xmin = np.array([minj])
+            xmin_vals.append(xmin)
             G = np.diag(-1 * np.ones((1,), dtype=float))
-            minj = 1./min([pi.value[j].min(), (1-pi.value[j]).min()])
-            xmin = np.array(minj).reshape(1,1)
-            h = -1*xmin
+            h = -1*xmin.reshape(1,1)
 
-            args = dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi)])
+            # additional arguments
+            arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
-            # call optimizer
-            optimized = False
-            while not optimized:
-                try:
-                    x_final = optimizer(xo, function, gradient, hessian, args)
-                    optimized = True
-                except ValueError as err:
-                    xo = xmin.ravel()+100*np.random.rand()
-                    bounds = [(minj, None)]
-                    solution = spopt.fmin_l_bfgs_b(function, xo, fprime=gradient, \
-                        args=(args,), bounds=bounds)
-                    x_final = solution[0]
-                    optimized = True
-            self.estim[j:j+1] = x_final
+        my_pool = Pool(self.J)
+        results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
+        my_pool.close()
+        my_pool.join()
+
+        for j in range(self.J):
+            self.estim[j:j+1] = results[j]
 
         if np.isnan(self.estim).any():
             print "Nan in Tau"
@@ -572,6 +509,166 @@ class Tau():
             print "Inf in Tau"
             raise ValueError
 
+def tau_parallel_optimize(params):
+    xo, xmin, minj, args = params
+    try:
+        x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
+    except ValueError:
+        xo = xmin+100*np.random.rand()
+        bounds = [(minj, None)]
+        solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
+            args=(args,), bounds=bounds)
+        x_final = solution[0]
+
+    return x_final
+
+def rebuild_Tau(J, estim):
+
+    tau = Tau(J)
+    tau.estim = estim
+    return tau
+
+def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
+    data_alpha = val_A + alpha
+    data_beta  = val_B + beta
+    data_x     = val_T + x
+
+    new_func = np.sum(gammaln(data_alpha),1) \
+             + np.sum(gammaln(data_beta),1) \
+             - np.sum(gammaln(data_x),1)
+
+    new_df   = np.sum(pi_val*digamma3(data_alpha),1) \
+             + np.sum((1-pi_val)*digamma3(data_beta),1) \
+             - np.sum(digamma3(data_x),1)
+
+    queue.put((new_func, new_df))
+
+def tau_function_gradient(x, args):
+    """Computes part of the likelihood function that has
+    terms containing `tau`, and its gradient.
+    """
+
+    data = args['data']
+    zeta = args['zeta']
+    pi = args['pi']
+    zetaestim = args['zetaestim']
+    j = args['j']
+
+    func = np.zeros((zeta.N,), dtype=float)
+    ffunc = 0
+    Df = np.zeros((x.size,), dtype=float)
+
+    pi_val = pi.value[j]
+    alpha = pi_val * x
+    beta = (1 - pi_val) * x
+    ffunc = ffunc + data.R * np.sum(gammaln(x) - gammaln(alpha) - gammaln(beta))
+    dff = data.R * np.sum(digamma3(x) - pi_val * digamma3(alpha) - (1 - pi_val) * digamma3(beta))
+    df = np.zeros((zeta.N,), dtype=float)
+
+    # loop over replicate
+    # LOOP TO PARALLELIZE
+
+    val_A = data.valueA[j]
+    val_B = data.valueB[j]
+    val_T = data.total[j]
+
+    results = []
+    queues = [Queue() for i in range(data.R)]
+    jobs   = [Process(target=tau_gamma_calculations, args=(val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, queues[r])) for r in range(data.R)]
+
+    for job in jobs: job.start()
+    for q in queues: results.append(q.get())
+    for job in jobs: job.join()
+
+    for r in range(data.R):
+        this_result = results[r]
+        func = func + this_result[0]
+        df   = df + this_result[1]
+
+    Df[0] = -1. * (np.sum(zeta.estim[:,1] * df) + zetaestim * dff)
+    F = -1. * (np.sum(zeta.estim[:,1] * func) + zetaestim * ffunc)
+
+    return F, Df
+
+def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
+    data_alpha = val_A + alpha
+    data_beta  = val_B + beta
+    data_x     = val_T + x
+
+    new_func = np.sum(gammaln(data_alpha),1) \
+             + np.sum(gammaln(data_beta),1) \
+             - np.sum(gammaln(data_x),1)
+
+    dg_data_x     = digamma3(data_x)
+    dg_data_alpha = digamma3(data_alpha)
+    dg_data_beta  = digamma3(data_beta)
+
+    new_df = np.sum(pi_val*dg_data_alpha,1) \
+           + np.sum((1-pi_val)*dg_data_beta,1) \
+           - np.sum(dg_data_x,1)
+
+    new_hf = np.sum(pi_val*pi_val * polygamma2(1,data_alpha, dg_data_alpha),1) \
+           + np.sum((1 - pi_val)*(1 - pi_val) * polygamma2(1,data_beta, dg_data_beta),1) \
+           - np.sum(polygamma2(1,data_x, dg_data_x),1)
+
+    queue.put((new_func, new_df, new_hf))
+
+def tau_function_gradient_hessian(x, args):
+    """Computes part of the likelihood function that has
+    terms containing `tau`, and its gradient and hessian.
+    """
+
+    data = args['data']
+    zeta = args['zeta']
+    pi = args['pi']
+    zetaestim = args['zetaestim']
+    j = args['j']
+
+    func = np.zeros((zeta.N,), dtype=float)
+    ffunc = 0
+    Df = np.zeros((x.size,), dtype=float)
+    hess = np.zeros((x.size,), dtype=float)
+    # loop over each scale
+
+    pi_val = pi.value[j]
+    alpha = pi_val * x
+    beta = (1 - pi_val) * x
+    ffunc = ffunc + data.R * np.sum(gammaln(x) - gammaln(alpha) - gammaln(beta))
+    dg_x = digamma3(x)
+    dg_alpha = digamma3(alpha)
+    dg_beta = digamma3(beta)
+    dff = data.R * np.sum(dg_x - pi_val * dg_alpha - (1 - pi_val) * dg_beta)
+    hff = data.R * np.sum(polygamma2(1, x, dg_x) - pi_val**2 * polygamma2(1, alpha, dg_alpha) \
+        - (1-pi_val)**2 * polygamma2(1, beta, dg_beta))
+    df = np.zeros((zeta.N,), dtype=float)
+    hf = np.zeros((zeta.N,), dtype=float)
+
+    val_A = data.valueA[j]
+    val_B = data.valueB[j]
+    val_T = data.total[j]
+
+    results = []
+    queues = [Queue() for i in range(data.R)]
+    jobs   = [Process(target=tau_gamma_calculations_hess, args=(val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, queues[r])) for r in range(data.R)]
+
+    for job in jobs: job.start()
+    for q in queues: results.append(q.get())
+    for job in jobs: job.join()
+
+    for r in range(data.R):
+        this_result = results[r]
+        func = func + this_result[0]
+        df   = df + this_result[1]
+        hf   = hf + this_result[2]
+    # loop over replicates
+    # LOOP TO PARALLELIZE
+
+    Df[0]   = -1 * (np.sum(zeta.estim[:,1] * df) + zetaestim * dff)
+    hess[0] = -1 * (np.sum(zeta.estim[:,1] * hf) + zetaestim * hff)
+    F       = -1. * (np.sum(zeta.estim[:,1] * func) + zetaestim * ffunc)
+    Hf      = np.diag(hess)
+
+    return F, Df, Hf
 
 class Alpha():
     """
