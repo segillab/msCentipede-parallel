@@ -268,17 +268,19 @@ cdef class Pi:
         number of scales
 
     """
+    cdef long J
+    cdef dict value
 
     def __cinit__(self, long J):
-
         cdef long j
+
         self.J = J
         self.value = dict()
         for j from 0 <= j < self.J:
             self.value[j] = np.empty((2**j,), dtype='float')
 
     def __reduce__(self):
-        return (rebuild_Pi, (self.J,self.value))
+        return (rebuild_Pi, (self.J, self.value))
 
     def update(self, Data data, Zeta zeta, Tau tau):
         """Update the estimates of parameter `p` (and `p_o`) in the model.
@@ -311,7 +313,7 @@ cdef class Pi:
         # my_pool.join()
         with contextlib.closing( Pool(self.J) ) as my_pool:
             results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
-        
+
         for j in range(self.J):
             self.value[j] = results[j]
 
