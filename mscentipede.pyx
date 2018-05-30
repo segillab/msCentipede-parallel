@@ -301,6 +301,8 @@ cdef class Pi:
         zetaestim = zeta.estim[:,1].sum()
 
         # call optimizer
+        _parallel_optimize = dill.dumps(parallel_optimize)
+        parallel_optimize_ = dill.loads(_parallel_optimize)
 
         print "Number of Optimizer calls: %s" % str(self.J)
 
@@ -320,7 +322,7 @@ cdef class Pi:
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
         my_pool = Pool(self.J)
-        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        results = my_pool.map(parallel_optimize_, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
         my_pool.close()
         my_pool.join()
 
