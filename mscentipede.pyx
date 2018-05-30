@@ -255,7 +255,7 @@ cdef class Zeta:
             + self.footprint_log_likelihood_ratio \
             + self.total_log_likelihood_ratio
 
-
+@cython.auto_pickle(True)
 cdef class Pi:
     """
     Class to store and update (M-step) the parameter `p` in the
