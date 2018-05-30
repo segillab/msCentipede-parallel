@@ -687,75 +687,28 @@ class Alpha():
         self.R = R
         self.estim = np.random.rand(self.R,2)*10
 
+    def __reduce__(self):
+        return (rebuild_Alpha, (self.R,self.estim))
+
     def update(self, zeta, omega):
         """Update the estimates of parameter `alpha` in the model.
         """
 
-        def function(x, kwargs):
-            """Computes part of the likelihood function that has
-            terms containing `alpha`.
-            """
-
-            zeta = kwargs['zeta']
-            omega = kwargs['omega']
-            constant = kwargs['constant']
-            zetaestim = kwargs['zetaestim']
-
-            func = np.array([outsum(gammaln(zeta.total[:,r:r+1] + x[2*r:2*r+2]) * zeta.estim) \
-                    - gammaln(x[2*r:2*r+2]) * zetaestim[0] + constant[r] * x[2*r:2*r+2] \
-                    for r in xrange(omega.R)])
-            f = -1.*func.sum()
-            return f
-
-        def gradient(x, kwargs):
-            """Computes gradient of the likelihood function with
-            respect to `omega`.
-            """
-
-            zeta = kwargs['zeta']
-            omega = kwargs['omega']
-            zetaestim = kwargs['zetaestim']
-            constant = kwargs['constant']
-
-            df = []
-            for r in xrange(omega.R):
-                df.append(outsum(digamma(zeta.total[:,r:r+1] + x[2*r:2*r+2]) * zeta.estim)[0] \
-                    - digamma(x[2*r:2*r+2]) * zetaestim[0] + constant[r])
-            Df = -1. * np.hstack(df)
-            return Df
-
-        def hessian(x, kwargs):
-            """Computes hessian of the likelihood function with
-            respect to `omega`.
-            """
-
-            zeta = kwargs['zeta']
-            omega = kwargs['omega']
-            zetaestim = kwargs['zetaestim']
-            constant = kwargs['constant']
-
-            hess = []
-            for r in xrange(omega.R):
-                hess.append(outsum(polygamma(1, zeta.total[:,r:r+1] + x[2*r:2*r+2]) * zeta.estim)[0] \
-                    - polygamma(1, x[2*r:2*r+2]) * zetaestim[0])
-            Hf = -1. * np.diag(np.hstack(hess))
-            return Hf
-
-        constant = [nplog(omega.estim[r]) * outsum(zeta.estim)[0] for r in xrange(self.R)]
-        zetaestim = outsum(zeta.estim)
+        zetaestim = np.sum(zeta.estim,0)
+        constant = zetaestim*nplog(omega.estim)
 
         # initialize optimization variables
         xo = self.estim.ravel()
 
         # set constraints for optimization variables
-        G = np.diag(-1 * np.ones(xo.shape, dtype=float))
-        h = np.zeros((xo.size,1), dtype=float)
+        G = np.diag(-1 * np.ones((2*self.R,), dtype=float))
+        h = np.zeros((2*self.R,1), dtype=float)
 
         args = dict([('G',G),('h',h),('omega',omega),('zeta',zeta),('constant',constant),('zetaestim',zetaestim)])
 
         # call optimizer
-        x_final = optimizer(xo, function, gradient, hessian, args)
-        self.estim = x_final.reshape(self.estim.shape)
+        x_final = optimizer(xo, alpha_function_gradient, alpha_function_gradient_hessian, args)
+        self.estim = x_final.reshape(self.R,2)
 
         if np.isnan(self.estim).any():
             print "Nan in Alpha"
@@ -765,6 +718,72 @@ class Alpha():
             print "Inf in Alpha"
             raise ValueError
 
+def rebuild_Alpha(R, estim):
+
+    alpha = Alpha(R)
+    alpha.estim = estim
+    return alpha
+
+def alpha_function_gradient(x, args):
+    """Computes part of the likelihood function that has
+    terms containing `alpha`, and its gradient
+    """
+
+    zeta = args['zeta']
+    omega = args['omega']
+    constant = args['constant']
+    zetaestim = args['zetaestim']
+
+    func = 0
+    df = np.zeros((2*omega.R,), dtype='float')
+
+    # LOOP TO PARALLELIZE
+    for r from 0 <= r < omega.R:
+        xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
+        func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
+                    - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
+        df[2*r:2*r+2] = np.sum(digamma3(xzeta) * zeta.estim, 0) \
+            - digamma3(x[2*r:2*r+2]) * zetaestim + constant[r]
+
+    f  = -1.*func
+    Df = -1. * df
+
+    return f, Df
+
+def alpha_function_gradient_hessian(x, args):
+    """Computes part of the likelihood function that has
+    terms containing `alpha`, and its gradient and hessian
+    """
+
+    zeta = args['zeta']
+    omega = args['omega']
+    zetaestim = args['zetaestim']
+    constant = args['constant']
+
+    func = 0
+    df = np.zeros((2*omega.R,), dtype='float')
+    hess = np.zeros((2*omega.R,), dtype='float')
+
+    # LOOP TO PARALLELIZE
+    for r from 0 <= r < omega.R:
+        xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
+        func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
+            - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
+
+        dg_xzeta = digamma3(xzeta)
+        dg_weird = digamma3(x[2*r:2*r+2])
+
+        df[2*r:2*r+2] = np.sum(dg_xzeta * zeta.estim, 0) \
+            - dg_weird * zetaestim + constant[r]
+
+        hess[2*r:2*r+2] = np.sum(polygamma2(1, xzeta, dg_xzeta) * zeta.estim, 0) \
+            - polygamma2(1, x[2*r:2*r+2], dg_weird) * zetaestim
+
+    f  = -1. * func
+    Df = -1. * df
+    Hf = -1. * np.diag(hess)
+
+    return f, Df, Hf
 
 class Omega():
     """
