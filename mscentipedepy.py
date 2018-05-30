@@ -18,6 +18,54 @@ MAX = np.finfo(np.double).max
 logistic = lambda x: 1./(1+np.exp(x))
 insum = lambda x,axes: np.apply_over_axes(np.sum,x,axes)
 
+def polygamma2(n, x, d):
+
+    n_arr = np.asarray(n)
+    x_arr = np.asarray(x)
+    fac2 = (-1.0)**(n_arr+1) * scipy.special.gamma(n_arr+1.0) * scipy.special.zeta(n_arr+1, x_arr)
+    return np.where(n_arr == 0, d, fac2)
+
+def digamma3(x):
+    return np.vectorize(digamma2)(x)
+
+def digamma2(x):
+ #  Check the input.
+ #
+  if ( x <= 0.0 ):
+    value = 0.0
+    return value
+ #
+ #  Initialize.
+ #
+  value = 0.0
+ #
+ #  Use approximation for small argument.
+ #
+  if ( x <= 0.000001 ):
+    euler_mascheroni = 0.57721566490153286060
+    value = - euler_mascheroni - 1.0 / x + 1.6449340668482264365 * x
+    return value
+ #
+ #  Reduce to DIGAMA(X + N).
+ #
+  while ( x < 8.5 ):
+    value = value - 1.0 / x
+    x = x + 1.0
+ #
+ #  Use Stirling's (actually de Moivre's) expansion.
+ #
+  r = 1.0 / x
+  value = value + np.log ( x ) - 0.5 * r
+  r = r * r
+  value = value \
+    - r * ( 1.0 / 12.0 \
+    - r * ( 1.0 / 120.0 \
+    - r * ( 1.0 / 252.0 \
+    - r * ( 1.0 / 240.0 \
+    - r * ( 1.0 / 132.0 ) ) ) ) )
+  return value
+
+
 def outsum(arr):
     """Summation over the first axis, without changing length of shape.
 
@@ -84,7 +132,6 @@ class Data:
         print "0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2]))
         self.R = reads.shape[2]
         self.J = math.frexp(self.L)[1]-1
-#        self.J = math.frexp(self.L)[1]-5
         for j in xrange(self.J):
             size = self.L/(2**(j+1))
             self.total[j] = np.array([reads[:,k*size:(k+2)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
