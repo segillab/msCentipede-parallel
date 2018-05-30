@@ -85,7 +85,7 @@ class Data:
         self.R = reads.shape[2]
         self.J = math.frexp(self.L)[1]-1
 #        self.J = math.frexp(self.L)[1]-5
-        for j from 0 <= j < self.J:
+        for j in xrange(self.J):
             size = self.L/(2**(j+1))
             self.total[j] = np.array([reads[:,k*size:(k+2)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
             self.valueA[j] = np.array([reads[:,k*size:(k+1)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
@@ -118,7 +118,7 @@ class Data:
         newcopy.N = self.N
         newcopy.L = self.L
         newcopy.R = self.R
-        for j from 0 <= j < self.J:
+        for j in xrange(self.J):
             newcopy.valueA[j] = self.valueA[j]
             newcopy.valueB[j] = self.valueB[j]
             newcopy.total[j] = self.total[j]
