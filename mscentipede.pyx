@@ -268,8 +268,6 @@ cdef class Pi:
         number of scales
 
     """
-    cdef public long J
-    cdef public dict value
 
     def __cinit__(self, long J):
         cdef long j
