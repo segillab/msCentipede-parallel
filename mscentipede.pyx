@@ -8,8 +8,9 @@ from scipy.special import gammaln
 import scipy
 import scipy.optimize as spopt
 import sys, time, math, pdb
-from multiprocessing import Process, Pool
+from multiprocessing import Process
 from multiprocessing.queues import Queue
+from pathos.multiprocessing import ProcessingPool as Pool
 
 # suppress optimizer output
 solvers.options['show_progress'] = True
