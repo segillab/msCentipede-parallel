@@ -184,9 +184,9 @@ class Zeta():
 
     """
 
-    def __init__(self, data, totalreads, infer=False):
+    def __init__(self, totalreads, N, infer):
 
-        self.N = data.N
+        self.N = N
         self.total = totalreads
 
         if infer:
@@ -204,14 +204,15 @@ class Zeta():
             self.estim = np.exp(self.estim - np.max(self.estim,1).reshape(self.N,1))
             self.estim = self.estim / insum(self.estim,[1])
 
-    def update(self, data, scores, pi, tau, alpha, beta, omega, \
+    def update(self, data, scores, \
+        pi, tau, alpha, beta, omega, \
         pi_null, tau_null, model):
 
-        footprint_logodds = np.zeros((self.N,1),dtype=float)
+        footprint_logodds = np.zeros((self.N,1), dtype=float)
         lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
-        for j in xrange(data.J):
-            footprint_logodds += insum(lhoodA.value[j] - lhoodB.value[j],[1])
+        for j from 0 <= j < data.J:
+            footprint_logodds += insum(lhoodA.valueA[j] - lhoodB.valueA[j],[1])
 
         prior_logodds = insum(beta.estim * scores, [1])
         negbin_logodds = insum(gammaln(self.total + alpha.estim.T[1]) \
@@ -226,13 +227,14 @@ class Zeta():
         self.estim = np.exp(self.estim-np.max(self.estim,1).reshape(self.N,1))
         self.estim = self.estim/insum(self.estim,[1])
 
-    def infer(self, data, scores, pi, tau, alpha, beta, omega, \
+    def infer(self, data, scores, \
+        pi, tau, alpha, beta, omega, \
         pi_null, tau_null, model):
 
         lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
-        for j in xrange(data.J):
-            self.footprint_log_likelihood_ratio += insum(lhoodA.value[j] - lhoodB.value[j],[1])
+        for j from 0 <= j < data.J:
+            self.footprint_log_likelihood_ratio += insum(lhoodA.valueA[j] - lhoodB.valueA[j],[1])
         self.footprint_log_likelihood_ratio = self.footprint_log_likelihood_ratio / np.log(10)
 
         self.prior_log_odds = insum(beta.estim * scores, [1]) / np.log(10)
