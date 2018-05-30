@@ -80,9 +80,9 @@ class Data:
     def transform(self, profile):
         """Transform a vector of read counts or parameter values
         into a multiscale representation.
-        
+
         .. note::
-            See msCentipede manual for more details.   
+            See msCentipede manual for more details.
 
         """
 
@@ -274,7 +274,7 @@ class Pi(Data):
                 + polygamma(1, data.total[j][r] - data.value[j][r] + tau.estim[j] * (1-x)) \
                 - polygamma(1, tau.estim[j] * x) - polygamma(1, tau.estim[j] * (1-x))
             hess = -1. * tau.estim[j]**2 * np.sum(zeta.estim[:,1:] * hf,0)
-            
+
             Hf = np.diag(hess)
             return Hf
 
@@ -449,7 +449,7 @@ class Tau():
 
 class Alpha():
     """
-    Class to store and update (M-step) the parameter `alpha` in negative 
+    Class to store and update (M-step) the parameter `alpha` in negative
     binomial part of the msCentipede model. There is a separate parameter
     for bound and unbound states, for each replicate.
 
@@ -485,7 +485,7 @@ class Alpha():
             return f
 
         def gradient(x, kwargs):
-            """Computes gradient of the likelihood function with 
+            """Computes gradient of the likelihood function with
             respect to `omega`.
             """
 
@@ -502,7 +502,7 @@ class Alpha():
             return Df
 
         def hessian(x, kwargs):
-            """Computes hessian of the likelihood function with 
+            """Computes hessian of the likelihood function with
             respect to `omega`.
             """
 
@@ -510,7 +510,7 @@ class Alpha():
             omega = kwargs['omega']
             zetaestim = kwargs['zetaestim']
             constant = kwargs['constant']
-            
+
             hess = []
             for r in xrange(omega.R):
                 hess.append(outsum(polygamma(1, zeta.total[:,r:r+1] + x[2*r:2*r+2]) * zeta.estim)[0] \
@@ -545,7 +545,7 @@ class Alpha():
 
 class Omega():
     """
-    Class to store and update (M-step) the parameter `omega` in negative 
+    Class to store and update (M-step) the parameter `omega` in negative
     binomial part of the msCentipede model. There is a separate parameter
     for bound and unbound states, for each replicate.
 
@@ -593,7 +593,7 @@ class Beta():
     """
 
     def __init__(self, scores):
-    
+
         self.S = scores.shape[1]
         self.estim = np.random.rand(self.S)
 
@@ -615,7 +615,7 @@ class Beta():
             return f
 
         def gradient(x, kwargs):
-            """Computes gradient of the likelihood function with 
+            """Computes gradient of the likelihood function with
             respect to `beta`.
             """
 
@@ -627,7 +627,7 @@ class Beta():
             return Df
 
         def hessian(x, kwargs):
-            """Computes hessian of the likelihood function with 
+            """Computes hessian of the likelihood function with
             respect to `beta`.
             """
 
@@ -649,14 +649,14 @@ class Beta():
 
         if np.isinf(self.estim).any():
             print "Inf in Beta"
-            raise ValueError        
+            raise ValueError
 
 
 def optimizer(xo, function, gradient, hessian, kwargs):
-    """Calls the appropriate nonlinear convex optimization solver 
+    """Calls the appropriate nonlinear convex optimization solver
     in the package `cvxopt` to find optimal values for the relevant
-    parameters, given subroutines that evaluate a function, 
-    its gradient, and hessian, this subroutine 
+    parameters, given subroutines that evaluate a function,
+    its gradient, and hessian, this subroutine
 
     Arguments
         function : function object
@@ -671,7 +671,7 @@ def optimizer(xo, function, gradient, hessian, kwargs):
     """
 
     def F(x=None, z=None):
-        """A subroutine that the cvxopt package can call to get 
+        """A subroutine that the cvxopt package can call to get
         values of the function, gradient and hessian during
         optimization.
         """
@@ -687,7 +687,7 @@ def optimizer(xo, function, gradient, hessian, kwargs):
             f = np.array([np.finfo('float32').max]).astype('float')
         else:
             f = np.array([f]).astype('float')
-        
+
         # compute gradient
         Df = gradient(xx, kwargs)
         if np.isnan(Df).any() or np.isinf(Df).any():
@@ -720,12 +720,12 @@ def optimizer(xo, function, gradient, hessian, kwargs):
 
 
 def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
-    """Evaluates the likelihood function for the 
+    """Evaluates the likelihood function for the
     footprint part of the bound model and background model.
 
     Arguments
         data : Data
-        transformed read count data 
+        transformed read count data
 
         pi : Pi
         estimate of mean footprint parameters at bound sites
@@ -739,7 +739,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
         tau_null : Tau or None
         estimate of cleavage heterogeneity at unbound sites
 
-        model : string 
+        model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
 
     """
@@ -750,7 +750,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
     for j in xrange(data.J):
         value = outsum(data.value[j])[0]
         total = outsum(data.total[j])[0]
-        
+
         lhood_bound.value[j] = outsum([gammaln(data.value[j][r] + pi.value[j] * tau.estim[j]) \
             + gammaln(data.total[j][r] - data.value[j][r] + (1 - pi.value[j]) * tau.estim[j]) \
             - gammaln(data.total[j][r] + tau.estim[j]) + gammaln(tau.estim[j]) \
@@ -758,12 +758,12 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
             for r in xrange(data.R)])[0]
 
         if model in ['msCentipede','msCentipede_flexbgmean']:
-            
+
             lhood_unbound.value[j] = value * nplog(pi_null.value[j]) \
                 + (total - value) * nplog(1 - pi_null.value[j])
-    
+
         elif model=='msCentipede_flexbg':
-            
+
             lhood_unbound.value[j] = outsum([gammaln(data.value[j][r] + pi_null.value[j] * tau_null.estim[j]) \
                 + gammaln(data.total[j][r] - data.value[j][r] + (1 - pi_null.value[j]) * tau_null.estim[j]) \
                 - gammaln(data.total[j][r] + tau_null.estim[j]) + gammaln(tau_null.estim[j]) \
@@ -800,7 +800,7 @@ def likelihood(data, scores, zeta, pi, tau, \
         estimate of negative binomial parameters for each replicate
 
         beta : Beta
-        weights for various scores in the logistic function 
+        weights for various scores in the logistic function
 
         omega : Omega
         estimate of negative binomial parameters for each replicate
@@ -840,7 +840,7 @@ def likelihood(data, scores, zeta, pi, tau, \
 
     L = P_0 * zeta.estim[:,:1] + insum(P_1 * zeta.estim[:,1:],[1]) + apriori * (1 - zeta.estim[:,:1]) \
         - nplog(1 + np.exp(apriori)) - insum(zeta.estim * nplog(zeta.estim),[1])
-    
+
     L = L.sum() / data.N
 
     if np.isnan(L):
@@ -880,7 +880,7 @@ def EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model
         estimate of negative binomial parameters for each replicate
 
         beta : Beta
-        weights for various scores in the logistic function 
+        weights for various scores in the logistic function
 
         omega : Omega
         estimate of negative binomial parameters for each replicate
@@ -949,7 +949,7 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
         estimate of negative binomial parameters for each replicate
 
         beta : Beta
-        weights for various scores in the logistic function 
+        weights for various scores in the logistic function
 
         omega : Omega
         estimate of negative binomial parameters for each replicate
@@ -1018,9 +1018,9 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
     EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model)
 
 
-def estimate_optimal_model(reads, totalreads, scores, background, model, restarts, mintol):
+def estimate_optimal_model(reads, totalreads, scores, background, model, log_file, restarts, mintol):
     """Learn the model parameters by running an EM algorithm till convergence.
-    Return the optimal parameter estimates from a number of EM results starting 
+    Return the optimal parameter estimates from a number of EM results starting
     from random restarts.
 
     Arguments
@@ -1031,7 +1031,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, restart
         totalreads : array
         array of total read counts in a genomic window,
         across motif instances and several measurement replicates.
-        the size of the genomic window can be different for 
+        the size of the genomic window can be different for
         `reads` and `totalreads`.
 
         scores : array
@@ -1056,125 +1056,271 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, restart
 
     """
 
+    log = "transforming data into multiscale representation ..."
+    log_handle = open(log_file,'a')
+    log_handle.write(log)
+    log_handle.close()
+    print log
+
     # transform data into multiscale representation
-    data = Data(reads)
-    data_null = Data(background)
-    scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
+    data = Data()
+    data.transform_to_multiscale(reads)
+    data_null = Data()
+    data_null.transform_to_multiscale(background)
     del reads
+
+    # transform matrix of PWM scores and other prior information
+    scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
+    S = scores.shape[1]
+
+    log_handle = open(log_file,'a')
+    log_handle.write("done\n")
+    log_handle.close()
 
     # set background model
     pi_null = Pi(data_null.J)
     for j in xrange(pi_null.J):
-        pi_null.value[j] = np.sum(np.sum(data_null.value[j],0),0) / np.sum(np.sum(data_null.total[j],0),0).astype('float')
-    tau_null = Tau(data_null.J)
-    tau_null = None
-        
-    if model=='msCentipede_flexbg':
-        
-        tau_null = Tau(data_null.J)
+        pi_null.value[j] = np.sum(np.sum(data_null.valueA[j],0),0) / np.sum(np.sum(data_null.total[j],0),0).astype('float')
 
-        zeta_null = Zeta(data_null, background.sum(1))
+    tau_null = Tau(data_null.J)
+    if model=='msCentipede_flexbg':
+
+        log = "learning a flexible background model ..."
+        log_handle = open(log_file,'a')
+        log_handle.write(log)
+        log_handle.close()
+        print log
+
+        zeta_null = Zeta(background.sum(1), data_null.N, False)
         zeta_null.estim[:,1] = 1
         zeta_null.estim[:,0] = 0
 
-        # iterative update of background model; 
+        # iterative update of background model;
         # evaluate convergence based on change in estimated
         # background overdispersion
         change = np.inf
         while change>1e-2:
-            change = tau_null.estim.copy()
-            
+            oldtau = tau_null.estim.copy()
+
             tau_null.update(data_null, zeta_null, pi_null)
             pi_null.update(data_null, zeta_null, tau_null)
 
-            change = np.abs(change-tau_null.estim).sum() / tau_null.J
+            change = np.abs(oldtau-tau_null.estim).sum() / tau_null.J
+
+        log_handle = open(log_file,'a')
+        log_handle.write("done\n")
+        log_handle.close()
 
     maxLoglike = -np.inf
     restart = 0
     err = 1
-    runlog = ['Number of sites = %d'%data.N]
     while restart<restarts:
 
-        try:
-            totaltime = time.time()
-            print "Restart %d ..."%(restart+1)
+        totaltime = time.time()
+        log = "starting model estimation (restart %d)"%(restart+1)
+        log_handle = open(log_file,'a')
+        log_handle.write(log+'\n')
+        log_handle.close()
+        print log
 
-            # initialize multi-scale model parameters
-            pi = Pi(data.J)
-            tau = Tau(data.J)
+        # initialize multi-scale model parameters
+        pi = Pi(data.J)
+        tau = Tau(data.J)
 
-            # initialize negative binomial parameters
-            alpha = Alpha(data.R)
-            omega = Omega(data.R)
+        # initialize negative binomial parameters
+        alpha = Alpha(data.R)
+        omega = Omega(data.R)
 
-            # initialize prior parameters
-            beta = Beta(scores)
+        # initialize prior parameters
+        beta = Beta(S)
 
-            # initialize posterior over latent variables
-            zeta = Zeta(data, totalreads)
-            for j in xrange(pi.J):
-                pi.value[j] = np.sum(data.value[j][0] * zeta.estim[:,1:],0) \
-                    / np.sum(data.total[j][0] * zeta.estim[:,1:],0).astype('float')
-                mask = pi.value[j]>0
-                pi.value[j][~mask] = pi.value[j][mask].min()
-                mask = pi.value[j]<1
-                pi.value[j][~mask] = pi.value[j][mask].max()
-                minj = 1./min([pi.value[j].min(), (1-pi.value[j]).min()])
-                if minj<2:
-                    minj = 2.
-                tau.estim[j] = minj+10*np.random.rand()
+        # initialize posterior over latent variables
+        zeta = Zeta(totalreads, data.N, False)
+        for j in xrange(pi.J):
+            pi.value[j] = np.sum(data.valueA[j][0] * zeta.estim[:,1:],0) \
+                / np.sum(data.total[j][0] * zeta.estim[:,1:],0).astype('float')
+            mask = pi.value[j]>0
+            pi.value[j][~mask] = pi.value[j][mask].min()
+            mask = pi.value[j]<1
+            pi.value[j][~mask] = pi.value[j][mask].max()
+            minj = 1./min([pi.value[j].min(), (1-pi.value[j]).min()])
+            if minj<2:
+                minj = 2.
+            tau.estim[j] = minj+10*np.random.rand()
 
-            # initial log likelihood of the model
-            Loglike = likelihood(data, scores, zeta, pi, tau, \
+        # initial log likelihood of the model
+        Loglike = likelihood(data, scores, zeta, pi, tau, \
+                alpha, beta, omega, pi_null, tau_null, model)
+
+        log = "initial log likelihood = %.2e"%Loglike
+        log_handle = open(log_file,'a')
+        log_handle.write(log+'\n')
+        log_handle.close()
+        print log
+
+        tol = np.inf
+        iteration = 0
+
+        while np.abs(tol)>mintol:
+
+            itertime = time.time()
+            square_EM(data, scores, zeta, pi, tau, \
                     alpha, beta, omega, pi_null, tau_null, model)
-            print Loglike
 
-            tol = np.inf
-            iter = 0
+            newLoglike = likelihood(data, scores, zeta, pi, tau, \
+                    alpha, beta, omega, pi_null, tau_null, model)
 
-            while np.abs(tol)>mintol:
+            tol = newLoglike - Loglike
+            Loglike = newLoglike
+            log = "iteration %d: log likelihood = %.2e, change in log likelihood = %.2e, iteration time = %.3f secs"%(iteration+1, Loglike, tol, time.time()-itertime)
+            log_handle = open(log_file,'a')
+            log_handle.write(log+'\n')
+            log_handle.close()
+            print log
+            iteration += 1
+        totaltime = (time.time()-totaltime)/60.
 
-                itertime = time.time()
-                EM(data, scores, zeta, pi, tau, \
-                        alpha, beta, omega, pi_null, tau_null, model)
+        # test if mean cleavage rate at bound sites is greater than at
+        # unbound sites, for each replicate; avoids local optima issues.
+        negbinmeans = alpha.estim * (1-omega.estim)/omega.estim
+        if np.any(negbinmeans[:,0]<negbinmeans[:,1]):
+            restart += 1
+            # choose these parameter estimates, if the likelihood is greater.
+            if Loglike>maxLoglike:
+                maxLoglikeres = Loglike
+                if model in ['msCentipede','msCentipede_flexbgmean']:
+                    footprint_model = (pi, tau, pi_null)
+                elif model=='msCentipede_flexbg':
+                    footprint_model = (pi, tau, pi_null, tau_null)
+                count_model = (alpha, omega)
+                prior = beta
 
-                newLoglike = likelihood(data, scores, zeta, pi, tau, \
-                        alpha, beta, omega, pi_null, tau_null, model)
-
-                tol = newLoglike - Loglike
-                Loglike = newLoglike
-                print "Iteration %d: log likelihood = %.7f, change in log likelihood = %.7f, iteration time = %.3f secs"%(iter+1, Loglike, tol, time.time()-itertime)
-                iter += 1
-            totaltime = (time.time()-totaltime)/60.
-
-            # test if mean cleavage rate at bound sites is greater than at 
-            # unbound sites, for each replicate; avoids local optima issues.
-            negbinmeans = alpha.estim * (1-omega.estim)/omega.estim
-            if np.any(negbinmeans[:,0]<negbinmeans[:,1]):
-                restart += 1
-                log = "%d. Log likelihood (per site) = %.3f (Completed in %.3f minutes)"%(restart,Loglike,totaltime)
-                runlog.append(log)
-                # choose these parameter estimates, if the likelihood is greater.
-                if Loglike>maxLoglike:
-                    maxLoglikeres = Loglike
-                    if model in ['msCentipede','msCentipede_flexbgmean']:
-                        footprint_model = (pi, tau, pi_null)
-                    elif model=='msCentipede_flexbg':
-                        footprint_model = (pi, tau, pi_null, tau_null)
-                    count_model = (alpha, omega)
-                    prior = beta
-
-        except ValueError:
-
-            print "encountered an invalid value"
-            if err<5:
-                print "re-initializing learning for Restart %d ... %d"%(restart,err)
-                err += 1
-            else:
-                print "Error in learning model parameters. Please ensure the inputs are all valid"
-                sys.exit(1)
-
-    return footprint_model, count_model, prior, runlog
+    return footprint_model, count_model, prior
+    
+    # log = "transforming data into multiscale representation ..."
+    # log_handle = open(log_file,'a')
+    # log_handle.write(log)
+    # log_handle.close()
+    # print log
+    # # transform data into multiscale representation
+    # data = Data(reads)
+    # data_null = Data(background)
+    # scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
+    # del reads
+    #
+    # # set background model
+    # pi_null = Pi(data_null.J)
+    # for j in xrange(pi_null.J):
+    #     pi_null.value[j] = np.sum(np.sum(data_null.value[j],0),0) / np.sum(np.sum(data_null.total[j],0),0).astype('float')
+    # tau_null = Tau(data_null.J)
+    # tau_null = None
+    #
+    # if model=='msCentipede_flexbg':
+    #
+    #     tau_null = Tau(data_null.J)
+    #
+    #     zeta_null = Zeta(data_null, background.sum(1))
+    #     zeta_null.estim[:,1] = 1
+    #     zeta_null.estim[:,0] = 0
+    #
+    #     # iterative update of background model;
+    #     # evaluate convergence based on change in estimated
+    #     # background overdispersion
+    #     change = np.inf
+    #     while change>1e-2:
+    #         change = tau_null.estim.copy()
+    #
+    #         tau_null.update(data_null, zeta_null, pi_null)
+    #         pi_null.update(data_null, zeta_null, tau_null)
+    #
+    #         change = np.abs(change-tau_null.estim).sum() / tau_null.J
+    #
+    # maxLoglike = -np.inf
+    # restart = 0
+    # err = 1
+    # runlog = ['Number of sites = %d'%data.N]
+    # while restart<restarts:
+    #
+    #     try:
+    #         totaltime = time.time()
+    #         print "Restart %d ..."%(restart+1)
+    #
+    #         # initialize multi-scale model parameters
+    #         pi = Pi(data.J)
+    #         tau = Tau(data.J)
+    #
+    #         # initialize negative binomial parameters
+    #         alpha = Alpha(data.R)
+    #         omega = Omega(data.R)
+    #
+    #         # initialize prior parameters
+    #         beta = Beta(scores)
+    #
+    #         # initialize posterior over latent variables
+    #         zeta = Zeta(data, totalreads)
+    #         for j in xrange(pi.J):
+    #             pi.value[j] = np.sum(data.value[j][0] * zeta.estim[:,1:],0) \
+    #                 / np.sum(data.total[j][0] * zeta.estim[:,1:],0).astype('float')
+    #             mask = pi.value[j]>0
+    #             pi.value[j][~mask] = pi.value[j][mask].min()
+    #             mask = pi.value[j]<1
+    #             pi.value[j][~mask] = pi.value[j][mask].max()
+    #             minj = 1./min([pi.value[j].min(), (1-pi.value[j]).min()])
+    #             if minj<2:
+    #                 minj = 2.
+    #             tau.estim[j] = minj+10*np.random.rand()
+    #
+    #         # initial log likelihood of the model
+    #         Loglike = likelihood(data, scores, zeta, pi, tau, \
+    #                 alpha, beta, omega, pi_null, tau_null, model)
+    #         print Loglike
+    #
+    #         tol = np.inf
+    #         iter = 0
+    #
+    #         while np.abs(tol)>mintol:
+    #
+    #             itertime = time.time()
+    #             EM(data, scores, zeta, pi, tau, \
+    #                     alpha, beta, omega, pi_null, tau_null, model)
+    #
+    #             newLoglike = likelihood(data, scores, zeta, pi, tau, \
+    #                     alpha, beta, omega, pi_null, tau_null, model)
+    #
+    #             tol = newLoglike - Loglike
+    #             Loglike = newLoglike
+    #             print "Iteration %d: log likelihood = %.7f, change in log likelihood = %.7f, iteration time = %.3f secs"%(iter+1, Loglike, tol, time.time()-itertime)
+    #             iter += 1
+    #         totaltime = (time.time()-totaltime)/60.
+    #
+    #         # test if mean cleavage rate at bound sites is greater than at
+    #         # unbound sites, for each replicate; avoids local optima issues.
+    #         negbinmeans = alpha.estim * (1-omega.estim)/omega.estim
+    #         if np.any(negbinmeans[:,0]<negbinmeans[:,1]):
+    #             restart += 1
+    #             log = "%d. Log likelihood (per site) = %.3f (Completed in %.3f minutes)"%(restart,Loglike,totaltime)
+    #             runlog.append(log)
+    #             # choose these parameter estimates, if the likelihood is greater.
+    #             if Loglike>maxLoglike:
+    #                 maxLoglikeres = Loglike
+    #                 if model in ['msCentipede','msCentipede_flexbgmean']:
+    #                     footprint_model = (pi, tau, pi_null)
+    #                 elif model=='msCentipede_flexbg':
+    #                     footprint_model = (pi, tau, pi_null, tau_null)
+    #                 count_model = (alpha, omega)
+    #                 prior = beta
+    #
+    #     except ValueError:
+    #
+    #         print "encountered an invalid value"
+    #         if err<5:
+    #             print "re-initializing learning for Restart %d ... %d"%(restart,err)
+    #             err += 1
+    #         else:
+    #             print "Error in learning model parameters. Please ensure the inputs are all valid"
+    #             sys.exit(1)
+    #
+    # return footprint_model, count_model, prior, runlog
 
 
 def infer_binding_posterior(reads, totalreads, scores, background, footprint, negbinparams, prior, model):
@@ -1188,7 +1334,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
         totalreads : array
         array of total read counts in a genomic window,
         across motif instances and several measurement replicates.
-        the size of the genomic window can be different for 
+        the size of the genomic window can be different for
         `reads` and `totalreads`.
 
         scores : array
@@ -1227,14 +1373,14 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
     # negative binomial parameters
     alpha = negbinparams[0]
     omega = negbinparams[1]
-    
+
     # weights in logistic function in the prior
     beta = prior
 
     # multiscale parameters
     pi = footprint[0]
     tau = footprint[1]
-    
+
     # setting background model
     pi_null = footprint[2]
     for j in xrange(pi_null.J):
@@ -1257,7 +1403,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
             change = np.inf
             while change>1e-1:
                 change = tau_null.estim.copy()
-                
+
                 pi_null.update(data_null, zeta_null, tau_null)
 
                 tau_null.update(data_null, zeta_null, pi_null)
@@ -1268,8 +1414,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
 
     zeta.infer(data, scores, pi, tau, alpha, beta, omega, \
         pi_null, tau_null, model)
-    
+
     return zeta.posterior_log_odds, \
         zeta.prior_log_odds, zeta.footprint_log_likelihood_ratio, \
         zeta.total_log_likelihood_ratio
-
