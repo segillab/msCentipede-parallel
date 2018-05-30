@@ -265,111 +265,188 @@ class Pi(Data):
 
     def __init__(self, J):
 
-        Data.__init__(self)
         self.J = J
-        for j in xrange(self.J):
+        self.value = dict()
+        for j from 0 <= j < self.J:
             self.value[j] = np.empty((2**j,), dtype='float')
 
-    def update(self, data, zeta, tau):
+    def __reduce__(self):
+        return (rebuild_Pi, (self.J, self.value))
+
+    def update(self, Data data, Zeta zeta, Tau tau):
         """Update the estimates of parameter `p` (and `p_o`) in the model.
         """
 
-        def function(x, kwargs):
-            """Computes part of the likelihood function that has
-            terms containing `pi`.
-            """
-            data = kwargs['data']
-            zeta = kwargs['zeta']
-            tau = kwargs['tau']
-            j = kwargs['j']
+        zetaestim = zeta.estim[:,1].sum()
 
-            func = np.zeros(data.value[j][0].shape, dtype=float)
-            for r in xrange(data.R):
-                func += gammaln(data.value[j][r] + tau.estim[j] * x) \
-                    + gammaln(data.total[j][r] - data.value[j][r] + tau.estim[j] * (1-x)) \
-                    - gammaln(tau.estim[j] * x) - gammaln(tau.estim[j] * (1-x))
-            f = -1. * np.sum(zeta.estim[:,1] * np.sum(func,1))
-            return f
+        # call optimizer
 
-        def gradient(x, kwargs):
-            """Computes gradient of the likelihood function with respect to `pi`.
-            """
 
-            data = kwargs['data']
-            zeta = kwargs['zeta']
-            tau = kwargs['tau']
-            j = kwargs['j']
+        print "Number of Optimizer calls: %s" % str(self.J)
 
-            df = np.zeros(data.value[j][0].shape, dtype=float)
-            for r in xrange(data.R):
-                df += digamma(data.value[j][r] + tau.estim[j] * x) \
-                - digamma(data.total[j][r] - data.value[j][r] + tau.estim[j] * (1-x)) \
-                - digamma(tau.estim[j] * x) + digamma(tau.estim[j] * (1-x))
-            Df = -1. * tau.estim[j] * np.sum(zeta.estim[:,1:] * df,0)
-            return Df
-
-        def hessian(x, kwargs):
-            """Computes hessian of the likelihood function with respect to `pi`.
-            """
-
-            data = kwargs['data']
-            zeta = kwargs['zeta']
-            tau = kwargs['tau']
-            j = kwargs['j']
-
-            hf = np.zeros(data.value[j][0].shape, dtype=float)
-            for r in xrange(data.R):
-                hf += polygamma(1, data.value[j][r] + tau.estim[j] * x) \
-                + polygamma(1, data.total[j][r] - data.value[j][r] + tau.estim[j] * (1-x)) \
-                - polygamma(1, tau.estim[j] * x) - polygamma(1, tau.estim[j] * (1-x))
-            hess = -1. * tau.estim[j]**2 * np.sum(zeta.estim[:,1:] * hf,0)
-
-            Hf = np.diag(hess)
-            return Hf
-
+        # Set up args
+        arg_vals = []
         for j in xrange(self.J):
-
             # initialize optimization variable
-            xo = self.value[j]
+            xo = self.value[j].copy()
             X = xo.size
 
             # set constraints for optimization variable
-            if tau.estim[j]<2:
-                xmin = 0.5*np.ones((X,1), dtype='float')
-                xmax = 0.5*np.ones((X,1), dtype='float')
-            else:
-                xmin = 1./tau.estim[j]*np.ones((X,1), dtype='float')
-                xmax = (1-1./tau.estim[j])*np.ones((X,1), dtype='float')
-            G = np.vstack((np.diag(-1*np.ones((X,), dtype='float')), \
-                    np.diag(np.ones((X,), dtype='float'))))
+            xmin = 1./tau.estim[j]*np.ones((X,1),dtype=float)
+            xmax = (1-1./tau.estim[j])*np.ones((X,1),dtype=float)
+            G = np.vstack((np.diag(-1*np.ones((X,), dtype=float)), np.diag(np.ones((X,), dtype=float))))
             h = np.vstack((-1*xmin,xmax))
 
-            args = dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('j',j)])
+            arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-            # call optimizer
-            optimized = False
-            while not optimized:
-                try:
-                    self.value[j] = optimizer(xo, function, gradient, hessian, args)
-                    optimized = True
-                except ValueError:
-                    dx = xmax-xmin
-                    xo[dx>0] = xmin + np.random.rand(X,1)/dx
-                    xo[dx==0] = xmin
+        # my_pool = Pool(self.J)
+        # my_pool.close()
+        # my_pool.join()
+        with contextlib.closing( Pool(self.J) ) as my_pool:
+            results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
 
-            if np.isnan(self.value[j]).any():
-                print "Nan in Pi"
-                raise ValueError
+        for j in range(self.J):
+            self.value[j] = results[j]
 
-            if np.isinf(self.value[j]).any():
-                print "Inf in Pi"
-                raise ValueError
+def parallel_optimize(xo_and_args):
+    xo, args = xo_and_args
 
-    def avoid_edges(self):
+    my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
-        for j in xrange(self.J):
-            self.value[j][self.value[j]<1e-10] = 1e-10
-            self.value[j][self.value[j]>1-1e-10] = 1-1e-10
+    if np.isnan(my_x_final).any():
+        print "Nan in Pi"
+        raise ValueError
+
+    if np.isinf(my_x_final).any():
+        print "Inf in Pi"
+        raise ValueError
+
+    return my_x_final
+
+def rebuild_Pi(J, value):
+
+    pi = Pi(J)
+    pi.value = value
+    return pi
+
+def pi_gamma_calculations(val_A, val_B, alpha, beta, queue):
+    data_alpha = val_A + alpha
+    data_beta  = val_B + beta
+    new_func = gammaln(data_alpha) + gammaln(data_beta)
+    new_df   = digamma3(data_alpha) - digamma3(data_beta)
+    queue.put((new_func, new_df))
+
+def pi_function_gradient(x, args):
+
+    """Computes part of the likelihood function that has
+    terms containing `pi`, along with its gradient
+    """
+
+    data = args['data']
+    zeta = args['zeta']
+    tau = args['tau']
+    zetaestim = args['zetaestim']
+    j = args['j']
+
+    J = 2**j
+    func = np.zeros((data.N,J), dtype=float)
+    df = np.zeros((data.N,J), dtype=float)
+    alpha = x * tau.estim[j]
+    beta = (1-x) * tau.estim[j]
+
+    val_A = data.valueA[j]
+    val_B = data.valueB[j]
+
+    # LOOP TO PARALLELIZE
+    results = []
+    queues = [Queue() for i in range(data.R)]
+    jobs   = [Process(target=pi_gamma_calculations, args=(val_A[r], val_B[r], alpha, beta, queues[r])) for r in range(data.R)]
+
+    for job in jobs: job.start()
+    for q in queues: results.append(q.get())
+    for job in jobs: job.join()
+
+    for r in range(data.R):
+        this_result = results[r]
+        func += this_result[0]
+        df   += this_result[1]
+
+    F  = np.sum(func,1) - np.sum(gammaln(alpha) + gammaln(beta)) * data.R
+    Df = tau.estim[j] * (np.sum(zeta.estim[:,1:] * df,0) \
+        - zetaestim * (digamma3(alpha) - digamma3(beta)) * data.R)
+
+    f  = -1. * np.sum(zeta.estim[:,1] * F)
+    Df = -1. * Df
+
+    return f, Df
+
+def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
+    data_alpha = val_A + alpha
+    data_beta  = val_B + beta
+
+    new_func = gammaln(data_alpha) + gammaln(data_beta)
+
+    dg_tmp_a = digamma3(data_alpha)
+    dg_tmp_b = digamma3(data_beta)
+
+    new_df = dg_tmp_a - dg_tmp_b
+    new_hf = polygamma2(1, data_alpha, dg_tmp_a) + polygamma2(1, data_beta, dg_tmp_b)
+
+    queue.put((new_func, new_df, new_hf))
+
+def pi_function_gradient_hessian(x, args):
+
+    """Computes part of the likelihood function that has
+    terms containing `pi`, along with its gradient and hessian
+    """
+
+    data = args['data']
+    zeta = args['zeta']
+    tau = args['tau']
+    zetaestim = args['zetaestim']
+    j = args['j']
+
+    hess = np.zeros((x.size,), dtype=float)
+
+    J = 2**j
+    func = np.zeros((data.N,J), dtype=float)
+    df = np.zeros((data.N,J), dtype=float)
+    hf = np.zeros((data.N,J), dtype=float)
+    alpha = x * tau.estim[j]
+    beta = (1-x) * tau.estim[j]
+
+    val_A = data.valueA[j]
+    val_B = data.valueB[j]
+
+    results = []
+    queues = [Queue() for i in range(data.R)]
+    jobs   = [Process(target=pi_gamma_calculations_hess, args=(val_A[r], val_B[r], alpha, beta, queues[r])) for r in range(data.R)]
+
+    for job in jobs: job.start()
+    for q in queues: results.append(q.get())
+    for job in jobs: job.join()
+
+    for r in range(data.R):
+        this_result = results[r]
+        func += this_result[0]
+        df   += this_result[1]
+        hf   += this_result[2]
+
+    F = np.sum(func,1) - np.sum(gammaln(alpha) + gammaln(beta)) * data.R
+
+    dg_alpha = digamma3(alpha)
+    dg_beta = digamma3(beta)
+
+    Df = tau.estim[j] * (np.sum(zeta.estim[:,1:] * df,0) \
+        - zetaestim * (dg_alpha - dg_beta) * data.R)
+    hess = tau.estim[j]**2 * (np.sum(zeta.estim[:,1:] * hf,0) \
+        - zetaestim * (polygamma2(1, alpha, dg_alpha) + polygamma2(1, beta, dg_beta)) * data.R)
+
+    f = -1. * np.sum(zeta.estim[:,1] * F)
+    Df = -1. * Df
+    Hf = np.diag(-1.*hess)
+
+    return f, Df, Hf
 
 class Tau():
     """
