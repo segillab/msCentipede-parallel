@@ -60,70 +60,70 @@ class Data:
         reads : array
 
     """
-        def __init__(self):
+    def __init__(self):
 
-            self.N = 0
-            self.L = 0
-            self.R = 0
-            self.J = 0
-            self.valueA = dict()
-            self.valueB = dict()
-            self.total = dict()
+        self.N = 0
+        self.L = 0
+        self.R = 0
+        self.J = 0
+        self.valueA = dict()
+        self.valueB = dict()
+        self.total = dict()
 
-        def transform_to_multiscale(self, reads):
-            """Transform a vector of read counts
-            into a multiscale representation.
+    def transform_to_multiscale(self, reads):
+        """Transform a vector of read counts
+        into a multiscale representation.
 
-            .. note::
-                See msCentipede manual for more details.
+        .. note::
+            See msCentipede manual for more details.
 
-            """
+        """
 
-            self.N = reads.shape[0]
-            self.L = reads.shape[1]
-            print "0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2]))
-            self.R = reads.shape[2]
-            self.J = math.frexp(self.L)[1]-1
-    #        self.J = math.frexp(self.L)[1]-5
-            for j from 0 <= j < self.J:
-                size = self.L/(2**(j+1))
-                self.total[j] = np.array([reads[:,k*size:(k+2)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
-                self.valueA[j] = np.array([reads[:,k*size:(k+1)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
-                self.valueB[j] = self.total[j] - self.valueA[j]
+        self.N = reads.shape[0]
+        self.L = reads.shape[1]
+        print "0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2]))
+        self.R = reads.shape[2]
+        self.J = math.frexp(self.L)[1]-1
+#        self.J = math.frexp(self.L)[1]-5
+        for j from 0 <= j < self.J:
+            size = self.L/(2**(j+1))
+            self.total[j] = np.array([reads[:,k*size:(k+2)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
+            self.valueA[j] = np.array([reads[:,k*size:(k+1)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
+            self.valueB[j] = self.total[j] - self.valueA[j]
 
-        def inverse_transform(self):
-            """Transform a multiscale representation of the data or parameters,
-            into vector representation.
+    def inverse_transform(self):
+        """Transform a multiscale representation of the data or parameters,
+        into vector representation.
 
-            """
+        """
 
-            if self.data:
-                profile = np.array([val for k in xrange(2**self.J) \
-                    for val in [self.value[self.J-1][k][0],self.value[self.J-1][k][1]-self.value[self.J-1][k][0]]])
-            else:
-                profile = np.array([1])
-                for j in xrange(self.J):
-                    profile = np.array([p for val in profile for p in [val,val]])
-                    vals = np.array([i for v in self.value[j] for i in [v,1-v]])
-                    profile = vals*profile
+        if self.data:
+            profile = np.array([val for k in xrange(2**self.J) \
+                for val in [self.value[self.J-1][k][0],self.value[self.J-1][k][1]-self.value[self.J-1][k][0]]])
+        else:
+            profile = np.array([1])
+            for j in xrange(self.J):
+                profile = np.array([p for val in profile for p in [val,val]])
+                vals = np.array([i for v in self.value[j] for i in [v,1-v]])
+                profile = vals*profile
 
-            return profile
+        return profile
 
-        def copy(self):
-            """ Create a copy of the class instance
-            """
+    def copy(self):
+        """ Create a copy of the class instance
+        """
 
-            newcopy = Data()
-            newcopy.J = self.J
-            newcopy.N = self.N
-            newcopy.L = self.L
-            newcopy.R = self.R
-            for j from 0 <= j < self.J:
-                newcopy.valueA[j] = self.valueA[j]
-                newcopy.valueB[j] = self.valueB[j]
-                newcopy.total[j] = self.total[j]
+        newcopy = Data()
+        newcopy.J = self.J
+        newcopy.N = self.N
+        newcopy.L = self.L
+        newcopy.R = self.R
+        for j from 0 <= j < self.J:
+            newcopy.valueA[j] = self.valueA[j]
+            newcopy.valueB[j] = self.valueB[j]
+            newcopy.total[j] = self.total[j]
 
-            return newcopy
+        return newcopy
 
 class Zeta():
     """
