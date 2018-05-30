@@ -8,7 +8,7 @@ from scipy.special import gammaln
 import scipy
 import scipy.optimize as spopt
 import sys, time, math, pdb
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 from multiprocessing.queues import Queue
 
 # suppress optimizer output
@@ -303,47 +303,24 @@ cdef class Pi:
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        results = []
-        queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in xrange(self.J)]
+        # results = []
+        # queues = [Queue() for i in range(self.J)]
+        # jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in xrange(self.J)]
 
-        for job in jobs: job.start()
-        for q in queues: results.append(q.get())
-        for job in jobs: job.join()
+        # for job in jobs: job.start()
+        # for q in queues: results.append(q.get())
+        # for job in jobs: job.join()
+        my_pool = Pool(self.J)
+        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        my_pool.close()
+        my_pool.join()
 
         for j in range(self.J):
             self.value[j] = results[j]
 
-        # for j in xrange(self.J):
-        #
-        #     # initialize optimization variable
-        #     xo = self.value[j].copy()
-        #     X = xo.size
-        #
-        #     # set constraints for optimization variable
-        #     xmin = 1./tau.estim[j]*np.ones((X,1),dtype=float)
-        #     xmax = (1-1./tau.estim[j])*np.ones((X,1),dtype=float)
-        #     G = np.vstack((np.diag(-1*np.ones((X,), dtype=float)), np.diag(np.ones((X,), dtype=float))))
-        #     h = np.vstack((-1*xmin,xmax))
-        #
-        #     # additional arguments
-        #     args = dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)])
-        #
-        #     # call optimizer
-        #     x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
-        #
-        #     if np.isnan(x_final).any():
-        #         print "Nan in Pi"
-        #         raise ValueError
-        #
-        #     if np.isinf(x_final).any():
-        #         print "Inf in Pi"
-        #         raise ValueError
-        #
-        #     # store optimum in data structure
-        #     self.value[j] = x_final
+def parallel_optimize(xo_and_args):
+    xo, args = xo_and_args
 
-def parallel_optimize(xo, args, queue):
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
     if np.isnan(my_x_final).any():
@@ -354,7 +331,20 @@ def parallel_optimize(xo, args, queue):
         print "Inf in Pi"
         raise ValueError
 
-    queue.put(my_x_final)
+    return my_x_final
+
+# def parallel_optimize(xo, args, queue):
+#     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
+#
+#     if np.isnan(my_x_final).any():
+#         print "Nan in Pi"
+#         raise ValueError
+#
+#     if np.isinf(my_x_final).any():
+#         print "Inf in Pi"
+#         raise ValueError
+#
+#     queue.put(my_x_final)
 
 def rebuild_Pi(J, value):
 
@@ -540,38 +530,18 @@ cdef class Tau:
             # additional arguments
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
-        # for j in xrange(self.J):
-        #     # initialize optimization variables
-        #     xo = self.estim[j:j+1]
-        #
-        #     # set constraints for optimization variables
-        #     minj = 1./min([np.min(pi.value[j]), np.min(1-pi.value[j])])
-        #     xmin = np.array([minj])
-        #     G = np.diag(-1 * np.ones((1,), dtype=float))
-        #     h = -1*xmin.reshape(1,1)
-        #
-        #     # additional arguments
-        #     args = dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)])
-        #
-        #     # call optimizer
-        #     try:
-        #         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
-        #     except ValueError:
-        #         xo = xmin+100*np.random.rand()
-        #         bounds = [(minj, None)]
-        #         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
-        #             args=(args,), bounds=bounds)
-        #         x_final = solution[0]
-            #
-            # self.estim[j:j+1] = x_final
+        # results = []
+        # queues = [Queue() for i in range(self.J)]
+        # jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in xrange(self.J)]
 
-        results = []
-        queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in xrange(self.J)]
+        # for job in jobs: job.start()
+        # for q in queues: results.append(q.get())
+        # for job in jobs: job.join()
 
-        for job in jobs: job.start()
-        for q in queues: results.append(q.get())
-        for job in jobs: job.join()
+        my_pool = Pool(self.J)
+        results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
+        my_pool.close()
+        my_pool.join()
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
@@ -584,7 +554,8 @@ cdef class Tau:
             print "Inf in Tau"
             raise ValueError
 
-def tau_parallel_optimize(xo, xmin, minj, args, queue):
+def tau_parallel_optimize(params):
+    xo, xmin, minj, args = params
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
     except ValueError:
@@ -594,7 +565,7 @@ def tau_parallel_optimize(xo, xmin, minj, args, queue):
             args=(args,), bounds=bounds)
         x_final = solution[0]
 
-    queue.put(x_final)
+    return x_final
 
 def rebuild_Tau(J, estim):
 
