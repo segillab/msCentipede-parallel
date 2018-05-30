@@ -286,7 +286,7 @@ cdef class Pi:
 
         # call optimizer
 
-        print "New J is: %s" % str(self.J)
+        print "Number of Optimizer calls: %s" % str(self.J)
 
         # Set up args
         arg_vals = []
@@ -303,13 +303,6 @@ cdef class Pi:
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        # results = []
-        # queues = [Queue() for i in range(self.J)]
-        # jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in xrange(self.J)]
-
-        # for job in jobs: job.start()
-        # for q in queues: results.append(q.get())
-        # for job in jobs: job.join()
         my_pool = Pool(self.J)
         results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
         my_pool.close()
@@ -332,19 +325,6 @@ def parallel_optimize(xo_and_args):
         raise ValueError
 
     return my_x_final
-
-# def parallel_optimize(xo, args, queue):
-#     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
-#
-#     if np.isnan(my_x_final).any():
-#         print "Nan in Pi"
-#         raise ValueError
-#
-#     if np.isinf(my_x_final).any():
-#         print "Inf in Pi"
-#         raise ValueError
-#
-#     queue.put(my_x_final)
 
 def rebuild_Pi(J, value):
 
@@ -510,7 +490,7 @@ cdef class Tau:
         """
 
         zetaestim = np.sum(zeta.estim[:,1])
-        print "New J is: %s" % str(self.J)
+        print "Number of Optimizer calls: %s" % str(self.J)
 
         arg_vals = []
         minj_vals = []
@@ -529,14 +509,6 @@ cdef class Tau:
 
             # additional arguments
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
-
-        # results = []
-        # queues = [Queue() for i in range(self.J)]
-        # jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in xrange(self.J)]
-
-        # for job in jobs: job.start()
-        # for q in queues: results.append(q.get())
-        # for job in jobs: job.join()
 
         my_pool = Pool(self.J)
         results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
@@ -1056,7 +1028,7 @@ def optimizer(np.ndarray[np.float64_t, ndim=1] xo, function_gradient, function_g
     V = xo.size
     x_init = xo.reshape(V,1)
 
-    print "call cvxopt solvers"
+    print "Calling CVXOPT Optimizer"
     # call the optimization subroutine in cvxopt
     if args.has_key('G'):
         # call a constrained nonlinear solver
