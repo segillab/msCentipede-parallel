@@ -215,7 +215,7 @@ class Zeta():
         footprint_logodds = np.zeros((self.N,1), dtype=float)
         lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
-        for j from 0 <= j < data.J:
+        for j in xrange(data.J):
             footprint_logodds += insum(lhoodA.valueA[j] - lhoodB.valueA[j],[1])
 
         prior_logodds = insum(beta.estim * scores, [1])
@@ -237,7 +237,7 @@ class Zeta():
 
         lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
-        for j from 0 <= j < data.J:
+        for j in xrange(data.J):
             self.footprint_log_likelihood_ratio += insum(lhoodA.valueA[j] - lhoodB.valueA[j],[1])
         self.footprint_log_likelihood_ratio = self.footprint_log_likelihood_ratio / np.log(10)
 
@@ -271,7 +271,7 @@ class Pi(Data):
 
         self.J = J
         self.value = dict()
-        for j from 0 <= j < self.J:
+        for j in xrange(self.J):
             self.value[j] = np.empty((2**j,), dtype='float')
 
     def __reduce__(self):
@@ -742,7 +742,7 @@ def alpha_function_gradient(x, args):
     df = np.zeros((2*omega.R,), dtype='float')
 
     # LOOP TO PARALLELIZE
-    for r from 0 <= r < omega.R:
+    for r in xrange(omega.R):
         xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
         func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
                     - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
@@ -769,7 +769,7 @@ def alpha_function_gradient_hessian(x, args):
     hess = np.zeros((2*omega.R,), dtype='float')
 
     # LOOP TO PARALLELIZE
-    for r from 0 <= r < omega.R:
+    for r in xrange(omega.R):
         xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
         func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
             - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
@@ -1023,7 +1023,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
     lhood_bound = Data()
     lhood_unbound = Data()
 
-    for j from 0 <= j < data.J:
+    for j in xrange(data.J):
         valueA = np.sum(data.valueA[j],0)
         valueB = np.sum(data.valueB[j],0)
 
@@ -1097,7 +1097,7 @@ def likelihood(data, scores, \
     lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
     footprint = np.zeros((data.N,1),dtype=float)
-    for j from 0 <= j < data.J:
+    for j in xrange(data.J):
         footprint += insum(lhoodA.valueA[j],[1])
 
     P_1 = footprint + insum(gammaln(zeta.total + alpha.estim[:,1]) - gammaln(alpha.estim[:,1]) \
@@ -1106,7 +1106,7 @@ def likelihood(data, scores, \
     P_1[P_1==-np.inf] = -MAX
 
     null = np.zeros((data.N,1), dtype=float)
-    for j from 0 <= j < data.J:
+    for j in xrange(data.J):
         null += insum(lhoodB.valueA[j],[1])
 
     P_0 = null + insum(gammaln(zeta.total + alpha.estim[:,0]) - gammaln(alpha.estim[:,0]) \
