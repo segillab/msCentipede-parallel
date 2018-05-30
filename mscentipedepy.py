@@ -803,12 +803,15 @@ class Omega():
         self.estim = np.random.rand(self.R,2)
         self.estim[:,1] = self.estim[:,1]/100
 
+    def __reduce__(self):
+        return (rebuild_Omega, (self.R,self.estim))
+
     def update(self, zeta, alpha):
         """Update the estimates of parameter `omega` in the model.
         """
 
-        numerator = outsum(zeta.estim)[0] * alpha.estim
-        denominator = np.array([outsum(zeta.estim * (estim + zeta.total[:,r:r+1]))[0] \
+        numerator = np.sum(zeta.estim,0) * alpha.estim
+        denominator = np.array([np.sum(zeta.estim * (estim + zeta.total[:,r:r+1]), 0) \
             for r,estim in enumerate(alpha.estim)])
         self.estim = numerator / denominator
 
@@ -820,6 +823,11 @@ class Omega():
             print "Inf in Omega"
             raise ValueError
 
+def rebuild_Omega(R, estim):
+
+    omega = Omega(R)
+    omega.estim = estim
+    return omega
 
 class Beta():
     """
