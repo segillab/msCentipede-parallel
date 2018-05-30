@@ -842,56 +842,25 @@ class Beta():
 
     """
 
-    def __init__(self, scores):
+    def __init__(self, S):
 
-        self.S = scores.shape[1]
+        self.S = S
         self.estim = np.random.rand(self.S)
+
+    def __reduce__(self):
+        return (rebuild_Beta, (self.S,self.estim))
 
     def update(self, scores, zeta):
         """Update the estimates of parameter `beta` in the model.
         """
 
-        def function(x, kwargs):
-            """Computes part of the likelihood function that has
-            terms containing `beta`.
-            """
-
-            scores = kwargs['scores']
-            zeta = kwargs['zeta']
-
-            arg = insum(x * scores,[1])
-            func = arg * zeta.estim[:,1:] - nplog(1 + np.exp(arg))
-            f = -1. * func.sum()
-            return f
-
-        def gradient(x, kwargs):
-            """Computes gradient of the likelihood function with
-            respect to `beta`.
-            """
-
-            scores = kwargs['scores']
-            zeta = kwargs['zeta']
-
-            arg = insum(x * scores,[1])
-            Df = -1 * np.sum(scores * (zeta.estim[:,1:] - logistic(-arg)),0)
-            return Df
-
-        def hessian(x, kwargs):
-            """Computes hessian of the likelihood function with
-            respect to `beta`.
-            """
-
-            scores = kwargs['scores']
-            zeta = kwargs['zeta']
-
-            arg = insum(x * scores,[1])
-            larg = scores * logistic(arg) * logistic(-arg)
-            Hf = np.dot(scores.T, larg)
-            return Hf
-
         xo = self.estim.copy()
         args = dict([('scores',scores),('zeta',zeta)])
-        self.estim = optimizer(xo, function, gradient, hessian, args)
+
+        try:
+            self.estim = optimizer(xo, beta_function_gradient, beta_function_gradient_hessian, args)
+        except (ValueError, OverflowError):
+            pass
 
         if np.isnan(self.estim).any():
             print "Nan in Beta"
@@ -901,6 +870,48 @@ class Beta():
             print "Inf in Beta"
             raise ValueError
 
+def rebuild_Beta(S, estim):
+
+    beta = Beta(S)
+    beta.estim = estim
+    return beta
+
+def beta_function_gradient(x, args):
+    """Computes part of the likelihood function that has
+    terms containing `beta`, and its gradient.
+    """
+
+    scores = args['scores']
+    zeta = args['zeta']
+
+    arg = insum(x * scores,[1])
+
+    func = arg * zeta.estim[:,1:] - nplog(1 + np.exp(arg))
+    f = -1. * func.sum()
+
+    Df = -1 * np.sum(scores * (zeta.estim[:,1:] - logistic(-arg)),0)
+
+    return f, Df
+
+def beta_function_gradient_hessian(x, args):
+    """Computes part of the likelihood function that has
+    terms containing `beta`, and its gradient and hessian.
+    """
+
+    scores = args['scores']
+    zeta = args['zeta']
+
+    arg = insum(x * scores,[1])
+
+    func = arg * zeta.estim[:,1:] - nplog(1 + np.exp(arg))
+    f = -1. * func.sum()
+
+    Df = -1 * np.sum(scores * (zeta.estim[:,1:] - logistic(-arg)),0)
+
+    larg = scores * logistic(arg) * logistic(-arg)
+    Hf = np.dot(scores.T, larg)
+
+    return f, Df, Hf
 
 def optimizer(xo, function, gradient, hessian, kwargs):
     """Calls the appropriate nonlinear convex optimization solver
