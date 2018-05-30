@@ -11,6 +11,7 @@ import sys, time, math, pdb
 from multiprocessing import Process
 from multiprocessing.queues import Queue
 from pathos.multiprocessing import ProcessingPool as Pool
+import dill
 
 # suppress optimizer output
 solvers.options['show_progress'] = True
