@@ -2,7 +2,7 @@ import numpy as np
 import random
 import cPickle
 import load_data
-import mscentipede
+import mscentipedepy as mscentipede
 import argparse
 import warnings
 import time
@@ -70,7 +70,7 @@ def learn_model(options):
     bam_handles = [load_data.BamFile(bam_file, options.protocol) for bam_file in options.bam_files]
     count_data = np.array([bam_handle.get_read_counts(locations, width=options.window) \
         for bam_handle in bam_handles])
-    ig = [handle.close() for handle in bam_handles]   
+    ig = [handle.close() for handle in bam_handles]
     total_counts = np.sum(count_data, 2).T
     counts = np.array([count.T for count in count_data]).T
 
@@ -142,7 +142,7 @@ def infer_binding(options):
 
     # load motifs
     motif_handle = load_data.ZipFile(options.motif_file)
-    
+
     # open read data handles
     bam_handles = [load_data.BamFile(bam_file, options.protocol) for bam_file in options.bam_files]
 
@@ -170,7 +170,7 @@ def infer_binding(options):
     else:
         # This means there was no header
         pass
-    
+
     loops = int(math.ceil(float(Ns) / options.batch))
 
     # open gzip file to save inference
@@ -231,29 +231,29 @@ def parse_args():
                         default="DNase_seq",
                         help="specifies the chromatin accessibility protocol (default:DNase_seq)")
 
-    parser.add_argument("--model", 
+    parser.add_argument("--model",
                         choices=("msCentipede", "msCentipede_flexbg", "msCentipede_flexbgmean"),
                         default="msCentipede",
                         help="models differ in how they capture background rate of enzyme cleavage (default:msCentipede)")
 
-    parser.add_argument("--restarts", 
-                        type=int, 
-                        default=1, 
+    parser.add_argument("--restarts",
+                        type=int,
+                        default=1,
                         help="number of re-runs of the algorithm (default: 1)")
 
-    parser.add_argument("--mintol", 
-                        type=float, 
+    parser.add_argument("--mintol",
+                        type=float,
                         default=1e-6,
                         help="convergence criterion for change in per-site marginal likelihood (default: 1e-6)")
 
-    parser.add_argument("--model_file", 
-                        type=str, 
-                        default=None, 
+    parser.add_argument("--model_file",
+                        type=str,
+                        default=None,
                         help="file name to store the model parameters")
 
-    parser.add_argument("--posterior_file", 
-                        type=str, 
-                        default=None, 
+    parser.add_argument("--posterior_file",
+                        type=str,
+                        default=None,
                         help="file name to store the posterior odds ratio, and "
                         "likelihood ratios for each model component, at each motif. ")
 
@@ -263,16 +263,16 @@ def parse_args():
                         help="file name to store some statistics of the EM algorithm ")
 #                        "and a plot of the cleavage profile at bound sites")
 
-    parser.add_argument("--window", 
-                        type=int, 
-                        default=128, 
+    parser.add_argument("--window",
+                        type=int,
+                        default=128,
                         help="size of window around the motif instance, where chromatin "
                         "accessibility profile is used for inferring transcription "
                         "factor binding. (default: 128)")
 
-    parser.add_argument("--batch", 
-                        type=int, 
-                        default=10000, 
+    parser.add_argument("--batch",
+                        type=int,
+                        default=10000,
                         help="maximum number of motif instances used for learning model parameters. "
                         " this is also the number of motif instances on which inference is "
                         " performed at a time. (default: 10000)")
@@ -317,7 +317,7 @@ def parse_args():
     # if no log file is provided, create a `default` log file name
     if options.log_file is None:
         options.log_file = "%s_%s_log.txt"%(options.motif_file.split('.')[0],'_'.join(options.model.split('-')))
-    
+
     # make sure model file exists, before trying to run inference
     if options.task=='infer':
         try:
