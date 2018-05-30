@@ -277,7 +277,7 @@ class Pi(Data):
     def __reduce__(self):
         return (rebuild_Pi, (self.J, self.value))
 
-    def update(self, Data data, Zeta zeta, Tau tau):
+    def update(self, data, zeta, tau):
         """Update the estimates of parameter `p` (and `p_o`) in the model.
         """
 
