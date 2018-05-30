@@ -936,41 +936,53 @@ def optimizer(xo, function, gradient, hessian, kwargs):
         values of the function, gradient and hessian during
         optimization.
         """
-
         if x is None:
             return 0, cvx.matrix(x_init)
 
         xx = np.array(x).ravel().astype(np.float64)
 
-        # compute likelihood function
-        f = function(xx, kwargs)
-        if np.isnan(f) or np.isinf(f):
-            f = np.array([np.finfo('float32').max]).astype('float')
-        else:
-            f = np.array([f]).astype('float')
-
-        # compute gradient
-        Df = gradient(xx, kwargs)
-        if np.isnan(Df).any() or np.isinf(Df).any():
-            Df = -1 * np.finfo('float32').max * np.ones((1,xx.size), dtype=float)
-        else:
-            Df = Df.reshape(1,xx.size)
         if z is None:
+
+            # compute likelihood function and gradient
+            f, Df = function_gradient(xx, args)
+
+            # check for infs and nans in function and gradient
+            if np.isnan(f) or np.isinf(f):
+                f = np.array([np.finfo('float32').max]).astype('float')
+            else:
+                f = np.array([f]).astype('float')
+            if np.isnan(Df).any() or np.isinf(Df).any():
+                Df = -1 * np.finfo('float32').max * np.ones((1,xx.size), dtype=float)
+            else:
+                Df = Df.reshape(1,xx.size)
+
             return cvx.matrix(f), cvx.matrix(Df)
 
-        # compute hessian
-        hess = hessian(xx, kwargs)
-        Hf = z[0] * hess
-        return cvx.matrix(f), cvx.matrix(Df), cvx.matrix(Hf)
+        else:
+
+            # compute likelihood function, gradient, and hessian
+            f, Df, hess = function_gradient_hessian(xx, args)
+            # check for infs and nans in function and gradient
+            if np.isnan(f) or np.isinf(f):
+                f = np.array([np.finfo('float32').max]).astype('float')
+            else:
+                f = np.array([f]).astype('float')
+            if np.isnan(Df).any() or np.isinf(Df).any():
+                Df = -1 * np.finfo('float32').max * np.ones((1,xx.size), dtype=float)
+            else:
+                Df = Df.reshape(1,xx.size)
+            Hf = z[0] * hess
+            return cvx.matrix(f), cvx.matrix(Df), cvx.matrix(Hf)
 
     # warm start for the optimization
     V = xo.size
     x_init = xo.reshape(V,1)
 
+    print "Calling CVXOPT Optimizer"
     # call the optimization subroutine in cvxopt
-    if kwargs.has_key('G'):
+    if args.has_key('G'):
         # call a constrained nonlinear solver
-        solution = solvers.cp(F, G=cvx.matrix(kwargs['G']), h=cvx.matrix(kwargs['h']))
+        solution = solvers.cp(F, G=cvx.matrix(args['G']), h=cvx.matrix(args['h']))
     else:
         # call an unconstrained nonlinear solver
         solution = solvers.cp(F)
@@ -978,7 +990,6 @@ def optimizer(xo, function, gradient, hessian, kwargs):
     x_final = np.array(solution['x']).ravel()
 
     return x_final
-
 
 def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
     """Evaluates the likelihood function for the
@@ -1008,34 +1019,34 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
     lhood_bound = Data()
     lhood_unbound = Data()
 
-    for j in xrange(data.J):
-        value = outsum(data.value[j])[0]
-        total = outsum(data.total[j])[0]
+    for j from 0 <= j < data.J:
+        valueA = np.sum(data.valueA[j],0)
+        valueB = np.sum(data.valueB[j],0)
 
-        lhood_bound.value[j] = outsum([gammaln(data.value[j][r] + pi.value[j] * tau.estim[j]) \
-            + gammaln(data.total[j][r] - data.value[j][r] + (1 - pi.value[j]) * tau.estim[j]) \
+        lhood_bound.valueA[j] = np.sum([gammaln(data.valueA[j][r] + pi.value[j] * tau.estim[j]) \
+            + gammaln(data.valueB[j][r] + (1 - pi.value[j]) * tau.estim[j]) \
             - gammaln(data.total[j][r] + tau.estim[j]) + gammaln(tau.estim[j]) \
             - gammaln(pi.value[j] * tau.estim[j]) - gammaln((1 - pi.value[j]) * tau.estim[j]) \
-            for r in xrange(data.R)])[0]
+            for r in xrange(data.R)],0)
 
         if model in ['msCentipede','msCentipede_flexbgmean']:
 
-            lhood_unbound.value[j] = value * nplog(pi_null.value[j]) \
-                + (total - value) * nplog(1 - pi_null.value[j])
+            lhood_unbound.valueA[j] = valueA * nplog(pi_null.value[j]) \
+                + valueB * nplog(1 - pi_null.value[j])
 
         elif model=='msCentipede_flexbg':
 
-            lhood_unbound.value[j] = outsum([gammaln(data.value[j][r] + pi_null.value[j] * tau_null.estim[j]) \
-                + gammaln(data.total[j][r] - data.value[j][r] + (1 - pi_null.value[j]) * tau_null.estim[j]) \
+            lhood_unbound.valueA[j] = np.sum([gammaln(data.valueA[j][r] + pi_null.value[j] * tau_null.estim[j]) \
+                + gammaln(data.valueB[j][r] + (1 - pi_null.value[j]) * tau_null.estim[j]) \
                 - gammaln(data.total[j][r] + tau_null.estim[j]) + gammaln(tau_null.estim[j]) \
                 - gammaln(pi_null.value[j] * tau_null.estim[j]) - gammaln((1 - pi_null.value[j]) * tau_null.estim[j]) \
-                for r in xrange(data.R)])[0]
+                for r in xrange(data.R)],0)
 
     return lhood_bound, lhood_unbound
 
-
-def likelihood(data, scores, zeta, pi, tau, \
-    alpha, beta, omega, pi_null, tau_null, model):
+def likelihood(data, scores, \
+    zeta, pi, tau, alpha, beta, \
+    omega, pi_null, tau_null, model):
     """Evaluates the likelihood function of the full
     model, given estimates of model parameters.
 
@@ -1082,8 +1093,8 @@ def likelihood(data, scores, zeta, pi, tau, \
     lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
     footprint = np.zeros((data.N,1),dtype=float)
-    for j in xrange(data.J):
-        footprint += insum(lhoodA.value[j],[1])
+    for j from 0 <= j < data.J:
+        footprint += insum(lhoodA.valueA[j],[1])
 
     P_1 = footprint + insum(gammaln(zeta.total + alpha.estim[:,1]) - gammaln(alpha.estim[:,1]) \
         + alpha.estim[:,1] * nplog(omega.estim[:,1]) + zeta.total * nplog(1 - omega.estim[:,1]), [1])
@@ -1091,18 +1102,18 @@ def likelihood(data, scores, zeta, pi, tau, \
     P_1[P_1==-np.inf] = -MAX
 
     null = np.zeros((data.N,1), dtype=float)
-    for j in xrange(data.J):
-        null += insum(lhoodB.value[j],[1])
+    for j from 0 <= j < data.J:
+        null += insum(lhoodB.valueA[j],[1])
 
     P_0 = null + insum(gammaln(zeta.total + alpha.estim[:,0]) - gammaln(alpha.estim[:,0]) \
         + alpha.estim[:,0] * nplog(omega.estim[:,0]) + zeta.total * nplog(1 - omega.estim[:,0]), [1])
     P_0[P_0==np.inf] = MAX
     P_0[P_0==-np.inf] = -MAX
 
-    L = P_0 * zeta.estim[:,:1] + insum(P_1 * zeta.estim[:,1:],[1]) + apriori * (1 - zeta.estim[:,:1]) \
+    LL = P_0 * zeta.estim[:,:1] + P_1 * zeta.estim[:,1:] + apriori * (1 - zeta.estim[:,:1]) \
         - nplog(1 + np.exp(apriori)) - insum(zeta.estim * nplog(zeta.estim),[1])
 
-    L = L.sum() / data.N
+    L = LL.sum() / data.N
 
     if np.isnan(L):
         print "Nan in LogLike"
@@ -1115,7 +1126,9 @@ def likelihood(data, scores, zeta, pi, tau, \
     return L
 
 
-def EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model):
+def EM(data, scores, \
+    zeta, pi, tau, alpha, beta, \
+    omega, pi_null, tau_null, model):
     """This subroutine updates all model parameters once and computes an
     estimate of the posterior probability of binding.
 
@@ -1157,7 +1170,6 @@ def EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model
 
     """
 
-
     # update binding posteriors
     zeta.update(data, scores, pi, tau, \
             alpha, beta, omega, pi_null, tau_null, model)
@@ -1172,18 +1184,18 @@ def EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model
     print "tau update in %.3f secs"%(time.time()-starttime)
 
     # update negative binomial parameters
-    starttime = time.time()
+    #starttime = time.time()
     omega.update(zeta, alpha)
-    print "omega update in %.3f secs"%(time.time()-starttime)
+    #print "omega update in %.3f secs"%(time.time()-starttime)
 
-    starttime = time.time()
+    #starttime = time.time()
     alpha.update(zeta, omega)
-    print "alpha update in %.3f secs"%(time.time()-starttime)
+    #print "alpha update in %.3f secs"%(time.time()-starttime)
 
     # update prior parameters
-    starttime = time.time()
+    #starttime = time.time()
     beta.update(scores, zeta)
-    print "beta update in %.3f secs"%(time.time()-starttime)
+    #print "beta update in %.3f secs"%(time.time()-starttime)
 
 def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model):
     """Accelerated update of model parameters and posterior probability of binding.
@@ -1254,7 +1266,7 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
         a = -1.
 
     # given two update steps, compute an optimal step that achieves
-    # a better likelihood than the best of the two steps.
+    # a better likelihood than the two steps.
     a_ok = False
     while not a_ok:
         invalid = np.zeros((0,), dtype='bool')
@@ -1458,131 +1470,6 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
 
     return footprint_model, count_model, prior
 
-    # log = "transforming data into multiscale representation ..."
-    # log_handle = open(log_file,'a')
-    # log_handle.write(log)
-    # log_handle.close()
-    # print log
-    # # transform data into multiscale representation
-    # data = Data(reads)
-    # data_null = Data(background)
-    # scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
-    # del reads
-    #
-    # # set background model
-    # pi_null = Pi(data_null.J)
-    # for j in xrange(pi_null.J):
-    #     pi_null.value[j] = np.sum(np.sum(data_null.value[j],0),0) / np.sum(np.sum(data_null.total[j],0),0).astype('float')
-    # tau_null = Tau(data_null.J)
-    # tau_null = None
-    #
-    # if model=='msCentipede_flexbg':
-    #
-    #     tau_null = Tau(data_null.J)
-    #
-    #     zeta_null = Zeta(data_null, background.sum(1))
-    #     zeta_null.estim[:,1] = 1
-    #     zeta_null.estim[:,0] = 0
-    #
-    #     # iterative update of background model;
-    #     # evaluate convergence based on change in estimated
-    #     # background overdispersion
-    #     change = np.inf
-    #     while change>1e-2:
-    #         change = tau_null.estim.copy()
-    #
-    #         tau_null.update(data_null, zeta_null, pi_null)
-    #         pi_null.update(data_null, zeta_null, tau_null)
-    #
-    #         change = np.abs(change-tau_null.estim).sum() / tau_null.J
-    #
-    # maxLoglike = -np.inf
-    # restart = 0
-    # err = 1
-    # runlog = ['Number of sites = %d'%data.N]
-    # while restart<restarts:
-    #
-    #     try:
-    #         totaltime = time.time()
-    #         print "Restart %d ..."%(restart+1)
-    #
-    #         # initialize multi-scale model parameters
-    #         pi = Pi(data.J)
-    #         tau = Tau(data.J)
-    #
-    #         # initialize negative binomial parameters
-    #         alpha = Alpha(data.R)
-    #         omega = Omega(data.R)
-    #
-    #         # initialize prior parameters
-    #         beta = Beta(scores)
-    #
-    #         # initialize posterior over latent variables
-    #         zeta = Zeta(data, totalreads)
-    #         for j in xrange(pi.J):
-    #             pi.value[j] = np.sum(data.value[j][0] * zeta.estim[:,1:],0) \
-    #                 / np.sum(data.total[j][0] * zeta.estim[:,1:],0).astype('float')
-    #             mask = pi.value[j]>0
-    #             pi.value[j][~mask] = pi.value[j][mask].min()
-    #             mask = pi.value[j]<1
-    #             pi.value[j][~mask] = pi.value[j][mask].max()
-    #             minj = 1./min([pi.value[j].min(), (1-pi.value[j]).min()])
-    #             if minj<2:
-    #                 minj = 2.
-    #             tau.estim[j] = minj+10*np.random.rand()
-    #
-    #         # initial log likelihood of the model
-    #         Loglike = likelihood(data, scores, zeta, pi, tau, \
-    #                 alpha, beta, omega, pi_null, tau_null, model)
-    #         print Loglike
-    #
-    #         tol = np.inf
-    #         iter = 0
-    #
-    #         while np.abs(tol)>mintol:
-    #
-    #             itertime = time.time()
-    #             EM(data, scores, zeta, pi, tau, \
-    #                     alpha, beta, omega, pi_null, tau_null, model)
-    #
-    #             newLoglike = likelihood(data, scores, zeta, pi, tau, \
-    #                     alpha, beta, omega, pi_null, tau_null, model)
-    #
-    #             tol = newLoglike - Loglike
-    #             Loglike = newLoglike
-    #             print "Iteration %d: log likelihood = %.7f, change in log likelihood = %.7f, iteration time = %.3f secs"%(iter+1, Loglike, tol, time.time()-itertime)
-    #             iter += 1
-    #         totaltime = (time.time()-totaltime)/60.
-    #
-    #         # test if mean cleavage rate at bound sites is greater than at
-    #         # unbound sites, for each replicate; avoids local optima issues.
-    #         negbinmeans = alpha.estim * (1-omega.estim)/omega.estim
-    #         if np.any(negbinmeans[:,0]<negbinmeans[:,1]):
-    #             restart += 1
-    #             log = "%d. Log likelihood (per site) = %.3f (Completed in %.3f minutes)"%(restart,Loglike,totaltime)
-    #             runlog.append(log)
-    #             # choose these parameter estimates, if the likelihood is greater.
-    #             if Loglike>maxLoglike:
-    #                 maxLoglikeres = Loglike
-    #                 if model in ['msCentipede','msCentipede_flexbgmean']:
-    #                     footprint_model = (pi, tau, pi_null)
-    #                 elif model=='msCentipede_flexbg':
-    #                     footprint_model = (pi, tau, pi_null, tau_null)
-    #                 count_model = (alpha, omega)
-    #                 prior = beta
-    #
-    #     except ValueError:
-    #
-    #         print "encountered an invalid value"
-    #         if err<5:
-    #             print "re-initializing learning for Restart %d ... %d"%(restart,err)
-    #             err += 1
-    #         else:
-    #             print "Error in learning model parameters. Please ensure the inputs are all valid"
-    #             sys.exit(1)
-    #
-    # return footprint_model, count_model, prior, runlog
-
 
 def infer_binding_posterior(reads, totalreads, scores, background, footprint, negbinparams, prior, model):
     """Infer posterior probability of factor binding, given optimal model parameters.
@@ -1625,9 +1512,10 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
 
     """
 
-    (N,L,R) = reads.shape
-    data = Data(reads)
-    data_null = Data(background)
+    data = Data()
+    data.transform_to_multiscale(reads)
+    data_null = Data()
+    data_null.transform_to_multiscale(background)
     scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
     del reads
 
@@ -1645,7 +1533,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
     # setting background model
     pi_null = footprint[2]
     for j in xrange(pi_null.J):
-        pi_null.value[j] = np.sum(np.sum(data_null.value[j],0),0) \
+        pi_null.value[j] = np.sum(np.sum(data_null.valueA[j],0),0) \
             / np.sum(np.sum(data_null.total[j],0),0).astype('float')
     tau_null = None
 
@@ -1655,7 +1543,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
 
         if data_null.N>1000:
 
-            zeta_null = Zeta(data_null, background.sum(1))
+            zeta_null = Zeta(background.sum(1), data_null.N, False)
             zeta_null.estim[:,1] = 1
             zeta_null.estim[:,0] = 0
 
@@ -1671,7 +1559,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
 
                 change = np.abs(change-tau_null.estim).sum()
 
-    zeta = Zeta(data, totalreads, infer=True)
+    zeta = Zeta(totalreads, data.N, True)
 
     zeta.infer(data, scores, pi, tau, alpha, beta, omega, \
         pi_null, tau_null, model)
