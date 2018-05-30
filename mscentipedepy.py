@@ -1,9 +1,13 @@
 import numpy as np
-import scipy.optimize as spopt
 import cvxopt as cvx
 from cvxopt import solvers
-from scipy.special import digamma, gammaln, polygamma
-import time, math, pdb
+from scipy.special import gammaln
+import scipy
+import scipy.optimize as spopt
+import sys, time, math, pdb
+from multiprocessing import Process
+from multiprocessing.queues import Queue
+from pathos.multiprocessing import ProcessingPool as Pool
 
 # suppress optimizer output
 solvers.options['show_progress'] = False
@@ -299,11 +303,11 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        # my_pool = Pool(self.J)
-        # my_pool.close()
-        # my_pool.join()
-        with contextlib.closing( Pool(self.J) ) as my_pool:
-            results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        my_pool = Pool(self.J)
+        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        my_pool.close()
+        my_pool.join()
+
 
         for j in range(self.J):
             self.value[j] = results[j]
