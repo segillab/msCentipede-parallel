@@ -282,6 +282,21 @@ cdef class Pi:
         """Update the estimates of parameter `p` (and `p_o`) in the model.
         """
 
+        def parallel_optimize(xo_and_args):
+            xo, args = xo_and_args
+
+            my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
+
+            if np.isnan(my_x_final).any():
+                print "Nan in Pi"
+                raise ValueError
+
+            if np.isinf(my_x_final).any():
+                print "Inf in Pi"
+                raise ValueError
+
+            return my_x_final
+
         zetaestim = zeta.estim[:,1].sum()
 
         # call optimizer
@@ -304,27 +319,12 @@ cdef class Pi:
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
         my_pool = Pool(self.J)
-        results = my_pool.map(self.parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
         my_pool.close()
         my_pool.join()
 
         for j in range(self.J):
             self.value[j] = results[j]
-
-    def parallel_optimize(self, xo_and_args):
-        xo, args = xo_and_args
-
-        my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
-
-        if np.isnan(my_x_final).any():
-            print "Nan in Pi"
-            raise ValueError
-
-        if np.isinf(my_x_final).any():
-            print "Inf in Pi"
-            raise ValueError
-
-        return my_x_final
 
 def rebuild_Pi(J, value):
 
