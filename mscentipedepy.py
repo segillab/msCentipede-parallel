@@ -182,7 +182,7 @@ class Data:
         newcopy.J = self.J
         newcopy.N = self.N
         newcopy.L = self.L
-        newcopy.R = self.
+        newcopy.R = self.R
         for j in range(self.J):
             newcopy.valueA[j] = self.valueA[j]
             newcopy.valueB[j] = self.valueB[j]
