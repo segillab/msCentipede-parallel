@@ -97,7 +97,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
         results = []
         queues  = [Queue() for i in range(range_val)]
         arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f['Process'], args=(list(arg_values[i]))) for i in range(range_val)]
+        jobs    = [Process(target=f['Pool'], args=(arg_values[i],)) for i in range(range_val)]
 
         for job in jobs:
             job.start()
