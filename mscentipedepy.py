@@ -544,7 +544,8 @@ def rebuild_Tau(J, estim):
     tau.estim = estim
     return tau
 
-def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
+def tau_gamma_calculations(params):
+    val_A, val_B, val_T, alpha, beta, x, pi_val, queue = params
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
     data_x     = val_T + x
@@ -557,7 +558,10 @@ def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
              + np.sum((1-pi_val)*digamma3(data_beta),1) \
              - np.sum(digamma3(data_x),1)
 
-    queue.put((new_func, new_df))
+    if queue is not None:
+        queue.put((new_func, new_df))
+    else:
+        return (new_func, new_df)
 
 def tau_function_gradient(x, args, J_iter):
     """Computes part of the likelihood function that has
@@ -588,13 +592,9 @@ def tau_function_gradient(x, args, J_iter):
     val_B = data.valueB[j]
     val_T = data.total[j]
 
-    results = []
-    queues = [Queue() for i in range(data.R)]
-    jobs   = [Process(target=tau_gamma_calculations, args=(val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, queues[r])) for r in range(data.R)]
-
-    for job in jobs: job.start()
-    for q in queues: results.append(q.get())
-    for job in jobs: job.join()
+    results = run_parallel(tau_gamma_calculations,
+                           ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
+                           21, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
@@ -606,7 +606,8 @@ def tau_function_gradient(x, args, J_iter):
 
     return F, Df
 
-def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
+def tau_gamma_calculations_hess(params):
+    val_A, val_B, val_T, alpha, beta, x, pi_val, queue = params
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
     data_x     = val_T + x
@@ -627,7 +628,10 @@ def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, que
            + np.sum((1 - pi_val)*(1 - pi_val) * polygamma2(1,data_beta, dg_data_beta),1) \
            - np.sum(polygamma2(1,data_x, dg_data_x),1)
 
-    queue.put((new_func, new_df, new_hf))
+    if queue is not None:
+        queue.put((new_func, new_df, new_hf))
+    else:
+        return (new_func, new_df, new_hf)
 
 def tau_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
@@ -663,13 +667,9 @@ def tau_function_gradient_hessian(x, args, J_iter):
     val_B = data.valueB[j]
     val_T = data.total[j]
 
-    results = []
-    queues = [Queue() for i in range(data.R)]
-    jobs   = [Process(target=tau_gamma_calculations_hess, args=(val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, queues[r])) for r in range(data.R)]
-
-    for job in jobs: job.start()
-    for q in queues: results.append(q.get())
-    for job in jobs: job.join()
+    resutls = run_parallel(tau_gamma_calculations_hess,
+                           ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
+                           21, data.R, J_iter)
 
     for r in range(data.R):
         this_result = results[r]
@@ -740,7 +740,7 @@ def rebuild_Alpha(R, estim):
     alpha.estim = estim
     return alpha
 
-def alpha_function_gradient(x, args, J):
+def alpha_function_gradient(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `alpha`, and its gradient
     """
@@ -766,7 +766,7 @@ def alpha_function_gradient(x, args, J):
 
     return f, Df
 
-def alpha_function_gradient_hessian(x, args, J):
+def alpha_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `alpha`, and its gradient and hessian
     """
@@ -892,7 +892,7 @@ def rebuild_Beta(S, estim):
     beta.estim = estim
     return beta
 
-def beta_function_gradient(x, args, J):
+def beta_function_gradient(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `beta`, and its gradient.
     """
@@ -909,7 +909,7 @@ def beta_function_gradient(x, args, J):
 
     return f, Df
 
-def beta_function_gradient_hessian(x, args, J):
+def beta_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `beta`, and its gradient and hessian.
     """
