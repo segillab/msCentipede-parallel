@@ -9,9 +9,9 @@ import scipy.optimize as spopt
 import sys, time, math, pdb
 from multiprocessing import Process
 from multiprocessing.queues import Queue
-# from pathos.multiprocessing import ProcessingPool as Pool
+from pathos.multiprocessing import ProcessingPool as Pool
 from numba import jit
-from multiprocessing import Pool
+# from multiprocessing import Pool
 
 # suppress optimizer output
 solvers.options['show_progress'] = True
@@ -312,8 +312,8 @@ class Pi(Data):
 
         my_pool = Pool(self.J)
         results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
-        my_pool.close()
-        my_pool.join()
+        # my_pool.close()
+        # my_pool.join()
         # results = map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
 
         for j in range(self.J):
