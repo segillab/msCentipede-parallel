@@ -178,11 +178,11 @@ class Data:
         """ Create a copy of the class instance
         """
 
-        newcopy = Data()
+        newcopy = Data(self.cores)
         newcopy.J = self.J
         newcopy.N = self.N
         newcopy.L = self.L
-        newcopy.R = self.R
+        newcopy.R = self.
         for j in range(self.J):
             newcopy.valueA[j] = self.valueA[j]
             newcopy.valueB[j] = self.valueB[j]
