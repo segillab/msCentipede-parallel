@@ -288,8 +288,22 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        def parallel_optimize(xo_and_args):
-            xo, args = xo_and_args
+        # def parallel_optimize(xo_and_args):
+        #     xo, args = xo_and_args
+        #
+        #     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
+        #
+        #     if np.isnan(my_x_final).any():
+        #         print("Nan in Pi")
+        #         raise ValueError
+        #
+        #     if np.isinf(my_x_final).any():
+        #         print("Inf in Pi")
+        #         raise ValueError
+        #
+        #     return my_x_final
+        def parallel_optimize(xo, args, queue):
+            # xo, args = xo_and_args
 
             my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
@@ -301,10 +315,17 @@ class Pi(Data):
                 print("Inf in Pi")
                 raise ValueError
 
-            return my_x_final
+            queue.put(my_x_final)
 
-        my_pool = Pool(self.J)
-        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
+        # my_pool = Pool(self.J)
+        # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
+        results = []
+        queues = [Queue() for i in range(self.J)]
+        jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
+
+        for job in jobs: job.start()
+        for q in queues: results.append(q.get())
+        for job in jobs: job.join()
 
         for j in range(self.J):
             self.value[j] = results[j]
@@ -479,17 +500,17 @@ class Tau():
             # additional arguments
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
-        # my_pool = Pool(self.J)
-        # results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
+        my_pool = Pool(self.J)
+        results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
         # my_pool.close()
         # my_pool.join()
-        results = []
-        queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in range(self.J)]
-
-        for job in jobs: job.start()
-        for q in queues: results.append(q.get())
-        for job in jobs: job.join()
+        # results = []
+        # queues = [Queue() for i in range(self.J)]
+        # jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in range(self.J)]
+        #
+        # for job in jobs: job.start()
+        # for q in queues: results.append(q.get())
+        # for job in jobs: job.join()
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
@@ -502,8 +523,21 @@ class Tau():
             print("Inf in Tau")
             raise ValueError
 
-def tau_parallel_optimize(xo, xmin, minj, args, queue):
-    # xo, xmin, minj, args = params
+# def tau_parallel_optimize(xo, xmin, minj, args, queue):
+#     # xo, xmin, minj, args = params
+#     try:
+#         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
+#     except ValueError:
+#         xo = xmin+100*np.random.rand()
+#         bounds = [(minj, None)]
+#         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
+#             args=(args,), bounds=bounds)
+#         x_final = solution[0]
+#
+#     queue.put(x_final)
+
+def tau_parallel_optimize(params):
+    xo, xmin, minj, args = params
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
     except ValueError:
@@ -513,7 +547,9 @@ def tau_parallel_optimize(xo, xmin, minj, args, queue):
             args=(args,), bounds=bounds)
         x_final = solution[0]
 
-    queue.put(x_final)
+    # queue.put(x_final)
+    return x_final
+
 
 def rebuild_Tau(J, estim):
 
