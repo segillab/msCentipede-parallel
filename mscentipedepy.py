@@ -25,7 +25,7 @@ MAX = np.finfo(np.double).max
 logistic = lambda x: 1./(1+np.exp(x))
 insum = lambda x,axes: np.apply_over_axes(np.sum,x,axes)
 
-# @jit
+@jit
 def polygamma2(n, x, d):
 
     n_arr = np.asarray(n)
@@ -33,11 +33,11 @@ def polygamma2(n, x, d):
     fac2 = (-1.0)**(n_arr+1) * scipy.special.gamma(n_arr+1.0) * scipy.special.zeta(n_arr+1, x_arr)
     return np.where(n_arr == 0, d, fac2)
 
-# @jit
+@jit
 def digamma3(x):
     return np.vectorize(digamma2)(x)
 
-# @jit
+@jit
 def digamma2(x):
  #  Check the input.
  #
@@ -326,10 +326,10 @@ class Pi(Data):
         # for job in jobs: job.start()
         # for q in queues: results.append(q.get())
         # for job in jobs: job.join()
-        @jit
+
         def parallel_optimize(xo_and_args):
             xo, args = xo_and_args
-            @jit
+
             def optimizer(xo, function_gradient, function_gradient_hessian, args):
                 """Calls the appropriate nonlinear convex optimization solver
                 in the package `cvxopt` to find optimal values for the relevant
@@ -347,7 +347,7 @@ class Pi(Data):
                     evaluates the hessian of the function
 
                 """
-                @jit
+
                 def F(x=None, z=None):
                     """A subroutine that the cvxopt package can call to get
                     values of the function, gradient and hessian during
