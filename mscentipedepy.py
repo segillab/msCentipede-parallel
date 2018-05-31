@@ -310,7 +310,7 @@ def run_parallel(f, arg_values, cores, reps, J):
         results = []
         queues  = [Queue() for i in range(J)]
         arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f, args=(arg_values[i])) for i in range(J)]
+        jobs    = [Process(target=f, args=(tuple(arg_values[i]))) for i in range(J)]
 
         for job in jobs:
             job.start()
