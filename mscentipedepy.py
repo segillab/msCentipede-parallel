@@ -87,8 +87,9 @@ def nplog(x):
         x = max([x,EPS])
     return np.log(x)
 
-def run_parallel(f, arg_values, cores, reps, J):
-    if cores >= reps * J:
+def run_parallel(f, arg_values, cores, reps, J, is_update=True):
+    processes_needed = reps * J if is_update else reps
+    if cores >= processes_needed:
         print("Running optimize with Process")
         results = []
         queues  = [Queue() for i in range(J)]
@@ -315,13 +316,13 @@ class Pi(Data):
         for j in range(self.J):
             self.value[j] = results[j]
 
-def parallel_optimize_process(xo, args, queue):
-    return parallel_optimize_pool((xo, args, queue))
+def parallel_optimize_process(xo, args, queue, J):
+    return parallel_optimize_pool((xo, args, queue, J))
 
 def parallel_optimize_pool(params):
-    xo, args, queue = params
+    xo, args, queue, J = params
 
-    my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
+    my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args, J)
 
     if np.isnan(my_x_final).any():
         print("Nan in Pi")
@@ -349,7 +350,7 @@ def pi_gamma_calculations(val_A, val_B, alpha, beta, queue):
     new_df   = digamma3(data_alpha) - digamma3(data_beta)
     queue.put((new_func, new_df))
 
-def pi_function_gradient(x, args):
+def pi_function_gradient(x, args, J):
 
     """Computes part of the likelihood function that has
     terms containing `pi`, along with its gradient
@@ -407,7 +408,7 @@ def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
 
     queue.put((new_func, new_df, new_hf))
 
-def pi_function_gradient_hessian(x, args):
+def pi_function_gradient_hessian(x, args, J):
 
     """Computes part of the likelihood function that has
     terms containing `pi`, along with its gradient and hessian
@@ -520,13 +521,13 @@ class Tau():
             print("Inf in Tau")
             raise ValueError
 
-def tau_parallel_optimize_process(xo, xmin, minj, args, queue):
+def tau_parallel_optimize_process(xo, xmin, minj, args, queue, J):
     return tau_parallel_optimize_pool((xo, xmin, minj, args, queue))
 
 def tau_parallel_optimize_pool(params):
-    xo, xmin, minj, args, queue = params
+    xo, xmin, minj, args, queue, J = params
     try:
-        x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
+        x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args, J)
     except ValueError:
         xo = xmin+100*np.random.rand()
         bounds = [(minj, None)]
@@ -561,7 +562,7 @@ def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
 
     queue.put((new_func, new_df))
 
-def tau_function_gradient(x, args):
+def tau_function_gradient(x, args, J):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient.
     """
@@ -631,7 +632,7 @@ def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, que
 
     queue.put((new_func, new_df, new_hf))
 
-def tau_function_gradient_hessian(x, args):
+def tau_function_gradient_hessian(x, args, J):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient and hessian.
     """
@@ -725,7 +726,7 @@ class Alpha():
         args = dict([('G',G),('h',h),('omega',omega),('zeta',zeta),('constant',constant),('zetaestim',zetaestim)])
 
         # call optimizer
-        x_final = optimizer(xo, alpha_function_gradient, alpha_function_gradient_hessian, args)
+        x_final = optimizer(xo, alpha_function_gradient, alpha_function_gradient_hessian, args, 1)
         self.estim = x_final.reshape(self.R,2)
 
         if np.isnan(self.estim).any():
@@ -742,7 +743,7 @@ def rebuild_Alpha(R, estim):
     alpha.estim = estim
     return alpha
 
-def alpha_function_gradient(x, args):
+def alpha_function_gradient(x, args, J):
     """Computes part of the likelihood function that has
     terms containing `alpha`, and its gradient
     """
@@ -768,7 +769,7 @@ def alpha_function_gradient(x, args):
 
     return f, Df
 
-def alpha_function_gradient_hessian(x, args):
+def alpha_function_gradient_hessian(x, args, J):
     """Computes part of the likelihood function that has
     terms containing `alpha`, and its gradient and hessian
     """
@@ -876,7 +877,7 @@ class Beta():
         args = dict([('scores',scores),('zeta',zeta)])
 
         try:
-            self.estim = optimizer(xo, beta_function_gradient, beta_function_gradient_hessian, args)
+            self.estim = optimizer(xo, beta_function_gradient, beta_function_gradient_hessian, args, 1)
         except (ValueError, OverflowError):
             pass
 
@@ -894,7 +895,7 @@ def rebuild_Beta(S, estim):
     beta.estim = estim
     return beta
 
-def beta_function_gradient(x, args):
+def beta_function_gradient(x, args, J):
     """Computes part of the likelihood function that has
     terms containing `beta`, and its gradient.
     """
@@ -911,7 +912,7 @@ def beta_function_gradient(x, args):
 
     return f, Df
 
-def beta_function_gradient_hessian(x, args):
+def beta_function_gradient_hessian(x, args, J):
     """Computes part of the likelihood function that has
     terms containing `beta`, and its gradient and hessian.
     """
@@ -931,7 +932,7 @@ def beta_function_gradient_hessian(x, args):
 
     return f, Df, Hf
 
-def optimizer(xo, function_gradient, function_gradient_hessian, args):
+def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
     """Calls the appropriate nonlinear convex optimization solver
     in the package `cvxopt` to find optimal values for the relevant
     parameters, given subroutines that evaluate a function,
@@ -962,7 +963,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args):
         if z is None:
 
             # compute likelihood function and gradient
-            f, Df = function_gradient(xx, args)
+            f, Df = function_gradient(xx, args, J)
 
             # check for infs and nans in function and gradient
             if np.isnan(f) or np.isinf(f):
@@ -979,7 +980,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args):
         else:
 
             # compute likelihood function, gradient, and hessian
-            f, Df, hess = function_gradient_hessian(xx, args)
+            f, Df, hess = function_gradient_hessian(xx, args, J)
             # check for infs and nans in function and gradient
             if np.isnan(f) or np.isinf(f):
                 f = np.array([np.finfo('float32').max]).astype('float')
