@@ -13,8 +13,8 @@ from pathos.multiprocessing import ProcessingPool as Pool
 from numba import jit
 
 # suppress optimizer output
-solvers.options['show_progress'] = False
-solvers.options['maxiters'] = 40
+solvers.options['show_progress'] = True
+solvers.options['maxiters'] = 20
 np.random.seed(10)
 
 # defining some constants
