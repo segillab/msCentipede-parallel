@@ -38,7 +38,6 @@ class ZipFile():
         for line in self.handle:
             yield line.strip().split('\t')
 
-    @jit
     def read(self, batch=None):
         """Reads in the lines of the file, either in batches
         or as a whole.
