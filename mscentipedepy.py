@@ -320,7 +320,7 @@ class Pi(Data):
         # my_pool.join()
         results = []
         queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=parallel_optimize, args=((self.value[j].copy(), arg_vals[j]))) for j in range(self.J)]
+        jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
 
         for job in jobs: job.start()
         for q in queues: results.append(q.get())
@@ -331,7 +331,7 @@ class Pi(Data):
             self.value[j] = results[j]
 
 # @jit
-def parallel_optimize(xo_and_args):
+def parallel_optimize(xo, args, queue):
     xo, args = xo_and_args
 
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
@@ -344,7 +344,7 @@ def parallel_optimize(xo_and_args):
         print "Inf in Pi"
         raise ValueError
 
-    return my_x_final
+    queue.put(my_x_final)
 
 # @jit
 def rebuild_Pi(J, value):
@@ -535,7 +535,7 @@ class Tau():
         # my_pool.join()
         results = []
         queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=tau_parallel_optimize, args=((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]))) for j in range(self.J)]
+        jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in range(self.J)]
 
         for job in jobs: job.start()
         for q in queues: results.append(q.get())
@@ -553,8 +553,8 @@ class Tau():
             raise ValueError
 
 # @jit
-def tau_parallel_optimize(params):
-    xo, xmin, minj, args = params
+def tau_parallel_optimize(xo, xmin, minj, args, queue):
+    # xo, xmin, minj, args = params
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
     except ValueError:
@@ -564,7 +564,7 @@ def tau_parallel_optimize(params):
             args=(args,), bounds=bounds)
         x_final = solution[0]
 
-    return x_final
+    queue.put(x_final)
 
 # @jit
 def rebuild_Tau(J, estim):
