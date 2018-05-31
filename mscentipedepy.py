@@ -345,12 +345,20 @@ def rebuild_Pi(J, value):
     pi.value = value
     return pi
 
-def pi_gamma_calculations(val_A, val_B, alpha, beta, queue):
+def pi_gamma_calculations_process(val_A, val_B, alpha, beta, queue):
+    return pi_gamma_calculations_pool((val_A, val_B, alpha, beta, queue))
+
+def pi_gamma_calculations_pool(params):
+    val_A, val_B, alpha, beta, queue = params
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
     new_func = gammaln(data_alpha) + gammaln(data_beta)
     new_df   = digamma3(data_alpha) - digamma3(data_beta)
-    queue.put((new_func, new_df))
+
+    if queue is not None:
+        queue.put((new_func, new_df))
+    else:
+        return (new_func, new_df)
 
 def pi_function_gradient(x, args, J):
 
@@ -374,13 +382,16 @@ def pi_function_gradient(x, args, J):
     val_B = data.valueB[j]
 
     # LOOP TO PARALLELIZE
-    results = []
-    queues = [Queue() for i in range(data.R)]
-    jobs   = [Process(target=pi_gamma_calculations, args=(val_A[r], val_B[r], alpha, beta, queues[r])) for r in range(data.R)]
+    # results = []
+    # queues = [Queue() for i in range(data.R)]
+    # jobs   = [Process(target=pi_gamma_calculations, args=(val_A[r], val_B[r], alpha, beta, queues[r])) for r in range(data.R)]
+    #
+    # for job in jobs: job.start()
+    # for q in queues: results.append(q.get())
+    # for job in jobs: job.join()
 
-    for job in jobs: job.start()
-    for q in queues: results.append(q.get())
-    for job in jobs: job.join()
+    results = run_parallel({'Process': pi_gamma_calculations_process, 'Pool': pi_gamma_calculations_pool},
+                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
