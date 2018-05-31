@@ -5,6 +5,7 @@ import pysam
 import gzip
 import os
 import pdb
+from numba import jit
 
 MIN_MAP_QUAL = 10
 MAX_VAL = 65535
@@ -37,6 +38,7 @@ class ZipFile():
         for line in self.handle:
             yield line.strip().split('\t')
 
+    @jit
     def read(self, batch=None):
         """Reads in the lines of the file, either in batches
         or as a whole.

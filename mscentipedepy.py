@@ -146,7 +146,7 @@ class Data:
 
         self.N = reads.shape[0]
         self.L = reads.shape[1]
-        print("0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2])))
+        # print("0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2])))
         self.R = reads.shape[2]
         self.J = math.frexp(self.L)[1]-1
         for j in range(self.J):
