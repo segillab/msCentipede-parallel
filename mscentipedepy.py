@@ -89,6 +89,8 @@ def nplog(x):
 
 def run_parallel(f, arg_values, cores, reps, J, is_update=True):
     processes_needed = reps * J if is_update else reps
+    if not is_update:
+        cores = math.floor(cores / float(J))
     if cores >= processes_needed:
         print("Running optimize with Process")
         results = []
@@ -532,7 +534,7 @@ def tau_parallel_optimize_pool(params):
         xo = xmin+100*np.random.rand()
         bounds = [(minj, None)]
         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
-            args=(args,), bounds=bounds)
+            args=(args, J), bounds=bounds)
         x_final = solution[0]
 
     if queue is not None:
