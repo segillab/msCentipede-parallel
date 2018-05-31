@@ -393,7 +393,7 @@ class Pi(Data):
                 V = xo.size
                 x_init = xo.reshape(V,1)
 
-                print "Calling CVXOPT Optimizer"
+                print("Calling CVXOPT Optimizer")
                 # call the optimization subroutine in cvxopt
                 if args.has_key('G'):
                     # call a constrained nonlinear solver
@@ -409,11 +409,11 @@ class Pi(Data):
             my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
             if np.isnan(my_x_final).any():
-                print "Nan in Pi"
+                print("Nan in Pi")
                 raise ValueError
 
             if np.isinf(my_x_final).any():
-                print "Inf in Pi"
+                print("Inf in Pi")
                 raise ValueError
 
             return my_x_final
@@ -425,9 +425,6 @@ class Pi(Data):
 
         for j in range(self.J):
             self.value[j] = results[j]
-
-# @jit
-
 
 # @jit
 def rebuild_Pi(J, value):
