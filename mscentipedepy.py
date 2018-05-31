@@ -9,8 +9,9 @@ import scipy.optimize as spopt
 import sys, time, math, pdb
 from multiprocessing import Process
 from multiprocessing.queues import Queue
-from pathos.multiprocessing import ProcessingPool as Pool
+# from pathos.multiprocessing import ProcessingPool as Pool
 from numba import jit
+from multiprocessing import Pool
 
 # suppress optimizer output
 solvers.options['show_progress'] = True
@@ -74,27 +75,6 @@ def digamma2(x):
     - r * ( 1.0 / 240.0 \
     - r * ( 1.0 / 132.0 ) ) ) ) )
   return value
-
-# @jit
-def outsum(arr):
-    """Summation over the first axis, without changing length of shape.
-
-    Arguments
-        arr : array
-
-    Returns
-        thesum : array
-
-    .. note::
-        This implementation is much faster than `numpy.sum`.
-
-    """
-
-    thesum = sum([a for a in arr])
-    shape = [1]
-    shape.extend(list(thesum.shape))
-    thesum = thesum.reshape(tuple(shape))
-    return thesum
 
 # @jit
 def nplog(x):
