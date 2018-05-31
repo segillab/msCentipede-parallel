@@ -89,14 +89,15 @@ def nplog(x):
 
 def run_parallel(f, arg_values, cores, reps, J, is_update=True):
     processes_needed = reps * J if is_update else reps
+    range_val = J if is_update else reps
     if not is_update:
         cores = math.floor(cores / float(J))
     if cores >= processes_needed:
         print("Running optimize with Process")
         results = []
-        queues  = [Queue() for i in range(J)]
+        queues  = [Queue() for i in range(range_val)]
         arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f['Process'], args=(list(arg_values[i]))) for i in range(J)]
+        jobs    = [Process(target=f['Process'], args=(list(arg_values[i]))) for i in range(range_val)]
 
         for job in jobs:
             job.start()
