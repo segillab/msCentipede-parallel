@@ -93,7 +93,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
     if not is_update:
         cores = math.floor(cores / float(J))
     if cores >= processes_needed:
-        print("Running optimize with Process")
+        # print("Running optimize with Process")
         results = []
         queues  = [Queue() for i in range(range_val)]
         arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
@@ -384,15 +384,6 @@ def pi_function_gradient(x, args, J_iter):
     val_A = data.valueA[j]
     val_B = data.valueB[j]
 
-    # LOOP TO PARALLELIZE
-    # results = []
-    # queues = [Queue() for i in range(data.R)]
-    # jobs   = [Process(target=pi_gamma_calculations, args=(val_A[r], val_B[r], alpha, beta, queues[r])) for r in range(data.R)]
-    #
-    # for job in jobs: job.start()
-    # for q in queues: results.append(q.get())
-    # for job in jobs: job.join()
-
     results = run_parallel({'Process': pi_gamma_calculations_process, 'Pool': pi_gamma_calculations_pool},
                           ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
 
@@ -410,7 +401,11 @@ def pi_function_gradient(x, args, J_iter):
 
     return f, Df
 
-def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
+def pi_gamma_calculations_hess_process(val_A, val_B, alpha, beta, queue):
+    return pi_gamma_calculations_hess_pool((val_A, val_B, alpha, beta, queue))
+
+def pi_gamma_calculations_hess_pool(params):
+    val_A, val_B, alpha, beta, queue = params
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
 
@@ -422,7 +417,10 @@ def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
     new_df = dg_tmp_a - dg_tmp_b
     new_hf = polygamma2(1, data_alpha, dg_tmp_a) + polygamma2(1, data_beta, dg_tmp_b)
 
-    queue.put((new_func, new_df, new_hf))
+    if queue is not None:
+        queue.put((new_func, new_df, new_hf))
+    else:
+        return (new_func, new_df, new_hf)
 
 def pi_function_gradient_hessian(x, args, J_iter):
 
@@ -448,13 +446,8 @@ def pi_function_gradient_hessian(x, args, J_iter):
     val_A = data.valueA[j]
     val_B = data.valueB[j]
 
-    results = []
-    queues = [Queue() for i in range(data.R)]
-    jobs   = [Process(target=pi_gamma_calculations_hess, args=(val_A[r], val_B[r], alpha, beta, queues[r])) for r in range(data.R)]
-
-    for job in jobs: job.start()
-    for q in queues: results.append(q.get())
-    for job in jobs: job.join()
+    results = run_parallel({'Process': pi_gamma_calculations_hess_process, 'Pool': pi_gamma_calculations_hess_pool},
+                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
