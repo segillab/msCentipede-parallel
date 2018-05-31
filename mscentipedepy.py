@@ -327,7 +327,7 @@ def run_parallel(f, arg_values, cores, reps, J):
         return my_pool.map(f['Pool'], arg_values)
 
 def parallel_optimize_process(xo, args, queue):
-    return parallel_optimize((xo, args, queue))
+    return parallel_optimize_pool((xo, args, queue))
 
 def parallel_optimize_pool(params):
     xo, args, queue = params
