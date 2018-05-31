@@ -125,7 +125,7 @@ class Data:
         reads : array
 
     """
-    def __init__(self):
+    def __init__(self, cores):
 
         self.N = 0
         self.L = 0
@@ -134,6 +134,7 @@ class Data:
         self.valueA = dict()
         self.valueB = dict()
         self.total = dict()
+        self.cores = cores
 
     def transform_to_multiscale(self, reads):
         """Transform a vector of read counts
@@ -316,7 +317,7 @@ class Pi(Data):
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
         results = run_parallel(pi_parallel_optimize,
-                              ((self.value[j].copy(), arg_vals[j], self.J) for j in range(self.J)), 21, data.R, self.J)
+                              ((self.value[j].copy(), arg_vals[j], self.J) for j in range(self.J)), data.cores, data.R, self.J)
 
         for j in range(self.J):
             self.value[j] = results[j]
@@ -379,7 +380,7 @@ def pi_function_gradient(x, args, J_iter):
     val_B = data.valueB[j]
 
     results = run_parallel(pi_gamma_calculations,
-                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
+                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
@@ -438,7 +439,7 @@ def pi_function_gradient_hessian(x, args, J_iter):
     val_B = data.valueB[j]
 
     results = run_parallel(pi_gamma_calculations_hess,
-                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
+                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
@@ -508,7 +509,7 @@ class Tau():
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
         results = run_parallel(tau_parallel_optimize,
-                              ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], self.J) for j in xrange(self.J)), 21, data.R, self.J)
+                              ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], self.J) for j in xrange(self.J)), data.cores, data.R, self.J)
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
@@ -594,7 +595,7 @@ def tau_function_gradient(x, args, J_iter):
 
     results = run_parallel(tau_gamma_calculations,
                            ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
-                           21, data.R, J_iter, is_update=False)
+                           data.cores, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
@@ -669,7 +670,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
 
     results = run_parallel(tau_gamma_calculations_hess,
                            ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
-                           21, data.R, J_iter, is_update=False)
+                           data.cores, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
@@ -1305,7 +1306,7 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
 
     EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model)
 
-def estimate_optimal_model(reads, totalreads, scores, background, model, log_file, restarts, mintol):
+def estimate_optimal_model(reads, totalreads, scores, background, model, log_file, restarts, mintol, cores):
     """Learn the model parameters by running an EM algorithm till convergence.
     Return the optimal parameter estimates from a number of EM results starting
     from random restarts.
@@ -1350,9 +1351,9 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
     print(log)
 
     # transform data into multiscale representation
-    data = Data()
+    data = Data(cores)
     data.transform_to_multiscale(reads)
-    data_null = Data()
+    data_null = Data(cores)
     data_null.transform_to_multiscale(background)
     del reads
 

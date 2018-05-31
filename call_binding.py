@@ -102,7 +102,7 @@ def learn_model(options):
 
     # estimate model parameters
     footprint_model, count_model, prior = mscentipede.estimate_optimal_model(counts, total_counts, scores, \
-        background_counts, options.model, options.log_file, options.restarts, options.mintol)
+        background_counts, options.model, options.log_file, options.restarts, options.mintol, options.cores)
 
     log = "writing model to file ... "
     handle = open(options.log_file,'a')
@@ -299,6 +299,11 @@ def parse_args():
     parser.add_argument("--seed",
                         default=None,
                         help="set seed for random initialization of parameters")
+
+    parser.add_argument("--cores",
+                        type=int,
+                        default=1,
+                        help="Number of cores to use for learning")
 
     options = parser.parse_args()
 
