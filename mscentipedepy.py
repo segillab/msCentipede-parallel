@@ -309,7 +309,7 @@ def run_parallel(f, arg_values, cores, reps, J):
         print("Running optimize with Process")
         results = []
         queues  = [Queue() for i in range(J)]
-        arg_values = [arg_values[j] + (queue[j],) for j in range(J)]
+        arg_values = [arg + (queue[index],) for index, arg in enumerate(arg_values)]
         jobs    = [Process(target=f, args=(arg_values[i])) for i in range(J)]
 
         for job in jobs:
