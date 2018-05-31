@@ -288,47 +288,59 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        # def parallel_optimize(xo_and_args):
-        #     xo, args = xo_and_args
-        #
-        #     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
-        #
-        #     if np.isnan(my_x_final).any():
-        #         print("Nan in Pi")
-        #         raise ValueError
-        #
-        #     if np.isinf(my_x_final).any():
-        #         print("Inf in Pi")
-        #         raise ValueError
-        #
-        #     return my_x_final
-        def parallel_optimize(xo, args, queue):
-            # xo, args = xo_and_args
-
-            my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
-
-            if np.isnan(my_x_final).any():
-                print("Nan in Pi")
-                raise ValueError
-
-            if np.isinf(my_x_final).any():
-                print("Inf in Pi")
-                raise ValueError
-
-            queue.put(my_x_final)
-
         # my_pool = Pool(self.J)
         # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
-        results = []
-        queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
 
-        for job in jobs: job.start()
-        for q in queues: results.append(q.get())
-        for job in jobs: job.join()
+        # results = []
+        # queues = [Queue() for i in range(self.J)]
+        # jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
+        #
+        # for job in jobs: job.start()
+        # for q in queues: results.append(q.get())
+        # for job in jobs: job.join()
+
+        results = run_parallel(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.value[j] = results[j]
+
+def run_parallel(f, arg_values, cores, reps, J):
+    if cores >= reps * J:
+        print("Running optimize with Process")
+        results = []
+        queues  = [Queue() for i in range(J)]
+        arg_values = [arg_values[j] + (queue[j],) for j in range(J)]
+        jobs    = [Process(target=f, args=(arg_values[i])) for i in range(J)]
+
+        for job in jobs:
+            job.start()
+        for queue in queues:
+            results.append(queue.get())
+        for job in jobs:
+            job.join()
+        return results
+    else:
+        print("Running optimize with Pool")
+        my_pool = Pool(cores / reps)
+        return my_pool.map(f, arg_values)
+
+def parallel_optimize(params):
+    xo, args, queue = params
+
+    my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
+
+    if np.isnan(my_x_final).any():
+        print("Nan in Pi")
+        raise ValueError
+
+    if np.isinf(my_x_final).any():
+        print("Inf in Pi")
+        raise ValueError
+
+    if queue is not None:
+        queue.put(my_x_final)
+    else:
+        return my_x_final
 
 def rebuild_Pi(J, value):
 
