@@ -667,9 +667,9 @@ def tau_function_gradient_hessian(x, args, J_iter):
     val_B = data.valueB[j]
     val_T = data.total[j]
 
-    resutls = run_parallel(tau_gamma_calculations_hess,
+    results = run_parallel(tau_gamma_calculations_hess,
                            ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
-                           21, data.R, J_iter)
+                           21, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
