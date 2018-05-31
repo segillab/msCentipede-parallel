@@ -139,13 +139,13 @@ class Data:
 
         self.N = reads.shape[0]
         self.L = reads.shape[1]
-        print "0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2]))
+        print("0: %s, 1: %s, 2: %s" % (str(reads.shape[0]), str(reads.shape[1]), str(reads.shape[2])))
         self.R = reads.shape[2]
         self.J = math.frexp(self.L)[1]-1
-        for j in xrange(self.J):
+        for j in range(self.J):
             size = self.L/(2**(j+1))
-            self.total[j] = np.array([reads[:,k*size:(k+2)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
-            self.valueA[j] = np.array([reads[:,k*size:(k+1)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
+            self.total[j] = np.array([reads[:,k*size:(k+2)*size,:].sum(1) for k in range(0,2**(j+1),2)]).T
+            self.valueA[j] = np.array([reads[:,k*size:(k+1)*size,:].sum(1) for k in range(0,2**(j+1),2)]).T
             self.valueB[j] = self.total[j] - self.valueA[j]
 
     # @jit
@@ -156,11 +156,11 @@ class Data:
         """
 
         if self.data:
-            profile = np.array([val for k in xrange(2**self.J) \
+            profile = np.array([val for k in range(2**self.J) \
                 for val in [self.value[self.J-1][k][0],self.value[self.J-1][k][1]-self.value[self.J-1][k][0]]])
         else:
             profile = np.array([1])
-            for j in xrange(self.J):
+            for j in range(self.J):
                 profile = np.array([p for val in profile for p in [val,val]])
                 vals = np.array([i for v in self.value[j] for i in [v,1-v]])
                 profile = vals*profile
@@ -177,7 +177,7 @@ class Data:
         newcopy.N = self.N
         newcopy.L = self.L
         newcopy.R = self.R
-        for j in xrange(self.J):
+        for j in range(self.J):
             newcopy.valueA[j] = self.valueA[j]
             newcopy.valueB[j] = self.valueB[j]
             newcopy.total[j] = self.total[j]
@@ -224,7 +224,7 @@ class Zeta():
         footprint_logodds = np.zeros((self.N,1), dtype=float)
         lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
-        for j in xrange(data.J):
+        for j in range(data.J):
             footprint_logodds += insum(lhoodA.valueA[j] - lhoodB.valueA[j],[1])
 
         prior_logodds = insum(beta.estim * scores, [1])
@@ -247,7 +247,7 @@ class Zeta():
 
         lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
-        for j in xrange(data.J):
+        for j in range(data.J):
             self.footprint_log_likelihood_ratio += insum(lhoodA.valueA[j] - lhoodB.valueA[j],[1])
         self.footprint_log_likelihood_ratio = self.footprint_log_likelihood_ratio / np.log(10)
 
@@ -281,7 +281,7 @@ class Pi(Data):
 
         self.J = J
         self.value = dict()
-        for j in xrange(self.J):
+        for j in range(self.J):
             self.value[j] = np.empty((2**j,), dtype='float')
 
     def __reduce__(self):
@@ -296,11 +296,11 @@ class Pi(Data):
         # call optimizer
 
 
-        print "Number of Optimizer calls: %s" % str(self.J)
+        print("Number of Optimizer calls: %s" % str(self.J))
 
         # Set up args
         arg_vals = []
-        for j in xrange(self.J):
+        for j in range(self.J):
             # initialize optimization variable
             xo = self.value[j].copy()
             X = xo.size
@@ -395,7 +395,7 @@ class Pi(Data):
 
                 print("Calling CVXOPT Optimizer")
                 # call the optimization subroutine in cvxopt
-                if args.has_key('G'):
+                if 'G' in args:
                     # call a constrained nonlinear solver
                     solution = solvers.cp(F, G=cvx.matrix(args['G']), h=cvx.matrix(args['h']))
                 else:
@@ -419,7 +419,7 @@ class Pi(Data):
             return my_x_final
 
         my_pool = Pool(self.J)
-        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
         my_pool.close()
         my_pool.join()
 
@@ -582,13 +582,13 @@ class Tau():
         """
 
         zetaestim = np.sum(zeta.estim[:,1])
-        print "Number of Optimizer calls: %s" % str(self.J)
+        print("Number of Optimizer calls: %s" % str(self.J))
 
         arg_vals = []
         minj_vals = []
         xmin_vals = []
 
-        for j in xrange(self.J):
+        for j in range(self.J):
             xo = self.estim[j:j+1]
 
             # set constraints for optimization variables
@@ -625,11 +625,11 @@ class Tau():
             self.estim[j:j+1] = results[j]
 
         if np.isnan(self.estim).any():
-            print "Nan in Tau"
+            print("Nan in Tau")
             raise ValueError
 
         if np.isinf(self.estim).any():
-            print "Inf in Tau"
+            print("Inf in Tau")
             raise ValueError
 
 # @jit
@@ -841,11 +841,11 @@ class Alpha():
         self.estim = x_final.reshape(self.R,2)
 
         if np.isnan(self.estim).any():
-            print "Nan in Alpha"
+            print("Nan in Alpha")
             raise ValueError
 
         if np.isinf(self.estim).any():
-            print "Inf in Alpha"
+            print("Inf in Alpha")
             raise ValueError
 
 # @jit
@@ -870,7 +870,7 @@ def alpha_function_gradient(x, args):
     df = np.zeros((2*omega.R,), dtype='float')
 
     # LOOP TO PARALLELIZE
-    for r in xrange(omega.R):
+    for r in range(omega.R):
         xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
         func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
                     - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
@@ -898,7 +898,7 @@ def alpha_function_gradient_hessian(x, args):
     hess = np.zeros((2*omega.R,), dtype='float')
 
     # LOOP TO PARALLELIZE
-    for r in xrange(omega.R):
+    for r in range(omega.R):
         xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
         func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
             - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
@@ -950,11 +950,11 @@ class Omega():
         self.estim = numerator / denominator
 
         if np.isnan(self.estim).any():
-            print "Nan in Omega"
+            print("Nan in Omega")
             raise ValueError
 
         if np.isinf(self.estim).any():
-            print "Inf in Omega"
+            print("Inf in Omega")
             raise ValueError
 
 # @jit
@@ -999,11 +999,11 @@ class Beta():
             pass
 
         if np.isnan(self.estim).any():
-            print "Nan in Beta"
+            print("Nan in Beta")
             raise ValueError
 
         if np.isinf(self.estim).any():
-            print "Inf in Beta"
+            print("Inf in Beta")
             raise ValueError
 
 # @jit
@@ -1118,9 +1118,9 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args):
     V = xo.size
     x_init = xo.reshape(V,1)
 
-    print "Calling CVXOPT Optimizer"
+    print("Calling CVXOPT Optimizer")
     # call the optimization subroutine in cvxopt
-    if args.has_key('G'):
+    if 'G' in args:
         # call a constrained nonlinear solver
         solution = solvers.cp(F, G=cvx.matrix(args['G']), h=cvx.matrix(args['h']))
     else:
@@ -1160,7 +1160,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
     lhood_bound = Data()
     lhood_unbound = Data()
 
-    for j in xrange(data.J):
+    for j in range(data.J):
         valueA = np.sum(data.valueA[j],0)
         valueB = np.sum(data.valueB[j],0)
 
@@ -1168,7 +1168,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
             + gammaln(data.valueB[j][r] + (1 - pi.value[j]) * tau.estim[j]) \
             - gammaln(data.total[j][r] + tau.estim[j]) + gammaln(tau.estim[j]) \
             - gammaln(pi.value[j] * tau.estim[j]) - gammaln((1 - pi.value[j]) * tau.estim[j]) \
-            for r in xrange(data.R)],0)
+            for r in range(data.R)],0)
 
         if model in ['msCentipede','msCentipede_flexbgmean']:
 
@@ -1181,7 +1181,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
                 + gammaln(data.valueB[j][r] + (1 - pi_null.value[j]) * tau_null.estim[j]) \
                 - gammaln(data.total[j][r] + tau_null.estim[j]) + gammaln(tau_null.estim[j]) \
                 - gammaln(pi_null.value[j] * tau_null.estim[j]) - gammaln((1 - pi_null.value[j]) * tau_null.estim[j]) \
-                for r in xrange(data.R)],0)
+                for r in range(data.R)],0)
 
     return lhood_bound, lhood_unbound
 
@@ -1235,7 +1235,7 @@ def likelihood(data, scores, \
     lhoodA, lhoodB = compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model)
 
     footprint = np.zeros((data.N,1),dtype=float)
-    for j in xrange(data.J):
+    for j in range(data.J):
         footprint += insum(lhoodA.valueA[j],[1])
 
     P_1 = footprint + insum(gammaln(zeta.total + alpha.estim[:,1]) - gammaln(alpha.estim[:,1]) \
@@ -1244,7 +1244,7 @@ def likelihood(data, scores, \
     P_1[P_1==-np.inf] = -MAX
 
     null = np.zeros((data.N,1), dtype=float)
-    for j in xrange(data.J):
+    for j in range(data.J):
         null += insum(lhoodB.valueA[j],[1])
 
     P_0 = null + insum(gammaln(zeta.total + alpha.estim[:,0]) - gammaln(alpha.estim[:,0]) \
@@ -1258,11 +1258,11 @@ def likelihood(data, scores, \
     L = LL.sum() / data.N
 
     if np.isnan(L):
-        print "Nan in LogLike"
+        print("Nan in LogLike")
         return -np.inf
 
     if np.isinf(L):
-        print "Inf in LogLike"
+        print("Inf in LogLike")
         return -np.inf
 
     return L
@@ -1319,11 +1319,11 @@ def EM(data, scores, \
     # update multi-scale parameters
     starttime = time.time()
     pi.update(data, zeta, tau)
-    print "p_jk update in %.3f secs"%(time.time()-starttime)
+    print("p_jk update in %.3f secs"%(time.time()-starttime))
 
     starttime = time.time()
     tau.update(data, zeta, pi)
-    print "tau update in %.3f secs"%(time.time()-starttime)
+    print("tau update in %.3f secs"%(time.time()-starttime))
 
     # update negative binomial parameters
     #starttime = time.time()
@@ -1387,7 +1387,7 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
         try:
             oldvar.append(parameter.estim.copy())
         except AttributeError:
-            oldvar.append(np.hstack([parameter.value[j].copy() for j in xrange(parameter.J)]))
+            oldvar.append(np.hstack([parameter.value[j].copy() for j in range(parameter.J)]))
     oldvars = [oldvar]
 
     # take two update steps
@@ -1398,11 +1398,11 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
             try:
                 oldvar.append(parameter.estim.copy())
             except AttributeError:
-                oldvar.append(np.hstack([parameter.value[j].copy() for j in xrange(parameter.J)]))
+                oldvar.append(np.hstack([parameter.value[j].copy() for j in range(parameter.J)]))
         oldvars.append(oldvar)
 
-    R = [oldvars[1][j]-oldvars[0][j] for j in xrange(len(parameters))]
-    V = [oldvars[2][j]-oldvars[1][j]-R[j] for j in xrange(len(parameters))]
+    R = [oldvars[1][j]-oldvars[0][j] for j in range(len(parameters))]
+    V = [oldvars[2][j]-oldvars[1][j]-R[j] for j in range(len(parameters))]
     a = -1.*np.sqrt(np.sum([(r*r).sum() for r in R]) / np.sum([(v*v).sum() for v in V]))
 
     if a>-1:
@@ -1423,7 +1423,7 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
                 # ensure constraints on variables are satisfied
                 invalid = np.hstack((invalid, np.logical_or(newparam<0, newparam>1)))
                 parameter.value = dict([(j,newparam[2**j-1:2**(j+1)-1]) \
-                    for j in xrange(parameter.J)])
+                    for j in range(parameter.J)])
         if np.any(invalid):
             a = (a-1)/2.
             if np.abs(a+1)<1e-4:
@@ -1476,7 +1476,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
     log_handle = open(log_file,'a')
     log_handle.write(log)
     log_handle.close()
-    print log
+    print(log)
 
     # transform data into multiscale representation
     data = Data()
@@ -1495,7 +1495,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
 
     # set background model
     pi_null = Pi(data_null.J)
-    for j in xrange(pi_null.J):
+    for j in range(pi_null.J):
         pi_null.value[j] = np.sum(np.sum(data_null.valueA[j],0),0) / np.sum(np.sum(data_null.total[j],0),0).astype('float')
 
     tau_null = Tau(data_null.J)
@@ -1505,7 +1505,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
         log_handle = open(log_file,'a')
         log_handle.write(log)
         log_handle.close()
-        print log
+        print(log)
 
         zeta_null = Zeta(background.sum(1), data_null.N, False)
         zeta_null.estim[:,1] = 1
@@ -1537,7 +1537,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
         log_handle = open(log_file,'a')
         log_handle.write(log+'\n')
         log_handle.close()
-        print log
+        print(log)
 
         # initialize multi-scale model parameters
         pi = Pi(data.J)
@@ -1552,7 +1552,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
 
         # initialize posterior over latent variables
         zeta = Zeta(totalreads, data.N, False)
-        for j in xrange(pi.J):
+        for j in range(pi.J):
             pi.value[j] = np.sum(data.valueA[j][0] * zeta.estim[:,1:],0) \
                 / np.sum(data.total[j][0] * zeta.estim[:,1:],0).astype('float')
             mask = pi.value[j]>0
@@ -1572,7 +1572,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
         log_handle = open(log_file,'a')
         log_handle.write(log+'\n')
         log_handle.close()
-        print log
+        print(log)
 
         tol = np.inf
         iteration = 0
@@ -1592,7 +1592,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
             log_handle = open(log_file,'a')
             log_handle.write(log+'\n')
             log_handle.close()
-            print log
+            print(log)
             iteration += 1
         totaltime = (time.time()-totaltime)/60.
 
@@ -1675,7 +1675,7 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
 
     # setting background model
     pi_null = footprint[2]
-    for j in xrange(pi_null.J):
+    for j in range(pi_null.J):
         pi_null.value[j] = np.sum(np.sum(data_null.valueA[j],0),0) \
             / np.sum(np.sum(data_null.total[j],0),0).astype('float')
     tau_null = None
