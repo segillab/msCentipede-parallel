@@ -318,33 +318,35 @@ class Pi(Data):
         # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
         # my_pool.close()
         # my_pool.join()
-        results = []
-        queues = [Queue() for i in range(self.J)]
-        jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
+        # results = []
+        # queues = [Queue() for i in range(self.J)]
+        # jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
+        #
+        # for job in jobs: job.start()
+        # for q in queues: results.append(q.get())
+        # for job in jobs: job.join()
+        def parallel_optimize(xo_and_args):
+            xo, args = xo_and_args
 
-        for job in jobs: job.start()
-        for q in queues: results.append(q.get())
-        for job in jobs: job.join()
+            my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
+            if np.isnan(my_x_final).any():
+                print "Nan in Pi"
+                raise ValueError
+
+            if np.isinf(my_x_final).any():
+                print "Inf in Pi"
+                raise ValueError
+
+            return my_x_final
+
+        results = map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
 
         for j in range(self.J):
             self.value[j] = results[j]
 
 # @jit
-def parallel_optimize(xo, args, queue):
-    # xo, args = xo_and_args
 
-    my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
-
-    if np.isnan(my_x_final).any():
-        print "Nan in Pi"
-        raise ValueError
-
-    if np.isinf(my_x_final).any():
-        print "Inf in Pi"
-        raise ValueError
-
-    queue.put(my_x_final)
 
 # @jit
 def rebuild_Pi(J, value):
