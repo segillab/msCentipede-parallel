@@ -315,98 +315,8 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        # my_pool = Pool(self.J)
-        # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
-        # my_pool.close()
-        # my_pool.join()
-        # results = []
-        # queues = [Queue() for i in range(self.J)]
-        # jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
-        #
-        # for job in jobs: job.start()
-        # for q in queues: results.append(q.get())
-        # for job in jobs: job.join()
-
         def parallel_optimize(xo_and_args):
             xo, args = xo_and_args
-
-            def optimizer(xo, function_gradient, function_gradient_hessian, args):
-                """Calls the appropriate nonlinear convex optimization solver
-                in the package `cvxopt` to find optimal values for the relevant
-                parameters, given subroutines that evaluate a function,
-                its gradient, and hessian, this subroutine
-
-                Arguments
-                    function : function object
-                    evaluates the function at the specified parameter values
-
-                    gradient : function object
-                    evaluates the gradient of the function
-
-                    hessian : function object
-                    evaluates the hessian of the function
-
-                """
-
-                def F(x=None, z=None):
-                    """A subroutine that the cvxopt package can call to get
-                    values of the function, gradient and hessian during
-                    optimization.
-                    """
-                    if x is None:
-                        return 0, cvx.matrix(x_init)
-
-                    xx = np.array(x).ravel().astype(np.float64)
-
-                    if z is None:
-
-                        # compute likelihood function and gradient
-                        f, Df = function_gradient(xx, args)
-
-                        # check for infs and nans in function and gradient
-                        if np.isnan(f) or np.isinf(f):
-                            f = np.array([np.finfo('float32').max]).astype('float')
-                        else:
-                            f = np.array([f]).astype('float')
-                        if np.isnan(Df).any() or np.isinf(Df).any():
-                            Df = -1 * np.finfo('float32').max * np.ones((1,xx.size), dtype=float)
-                        else:
-                            Df = Df.reshape(1,xx.size)
-
-                        return cvx.matrix(f), cvx.matrix(Df)
-
-                    else:
-
-                        # compute likelihood function, gradient, and hessian
-                        f, Df, hess = function_gradient_hessian(xx, args)
-                        # check for infs and nans in function and gradient
-                        if np.isnan(f) or np.isinf(f):
-                            f = np.array([np.finfo('float32').max]).astype('float')
-                        else:
-                            f = np.array([f]).astype('float')
-                        if np.isnan(Df).any() or np.isinf(Df).any():
-                            Df = -1 * np.finfo('float32').max * np.ones((1,xx.size), dtype=float)
-                        else:
-                            Df = Df.reshape(1,xx.size)
-                        Hf = z[0] * hess
-                        return cvx.matrix(f), cvx.matrix(Df), cvx.matrix(Hf)
-
-                # warm start for the optimization
-                V = xo.size
-                x_init = xo.reshape(V,1)
-
-                print("Calling CVXOPT Optimizer")
-                # call the optimization subroutine in cvxopt
-                if 'G' in args:
-                    # call a constrained nonlinear solver
-                    solution = solvers.cp(F, G=cvx.matrix(args['G']), h=cvx.matrix(args['h']))
-                else:
-                    # call an unconstrained nonlinear solver
-                    solution = solvers.cp(F)
-
-                x_final = np.array(solution['x']).ravel()
-
-                return x_final
 
             my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
@@ -420,11 +330,11 @@ class Pi(Data):
 
             return my_x_final
 
-        # my_pool = Pool(self.J)
-        # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
-        # my_pool.close()
-        # my_pool.join()
-        results = map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
+        my_pool = Pool(self.J)
+        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
+        my_pool.close()
+        my_pool.join()
+        # results = map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
 
         for j in range(self.J):
             self.value[j] = results[j]
