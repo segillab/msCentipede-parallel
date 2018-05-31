@@ -107,8 +107,8 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
             job.join()
         return results
     else:
-        print("Running optimize with Pool")
-        print("cores = {}, reps = {}, J = {}".format(cores, reps, J))
+        # print("Running optimize with Pool")
+        # print("cores = {}, reps = {}, J = {}".format(cores, reps, J))
 
         arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
         if not is_update:
