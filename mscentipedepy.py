@@ -324,8 +324,10 @@ class Pi(Data):
         # for job in jobs: job.start()
         # for q in queues: results.append(q.get())
         # for job in jobs: job.join()
+        @jit
         def parallel_optimize(xo_and_args):
             xo, args = xo_and_args
+            @jit
             def optimizer(xo, function_gradient, function_gradient_hessian, args):
                 """Calls the appropriate nonlinear convex optimization solver
                 in the package `cvxopt` to find optimal values for the relevant
@@ -343,7 +345,7 @@ class Pi(Data):
                     evaluates the hessian of the function
 
                 """
-                # @jit
+                @jit
                 def F(x=None, z=None):
                     """A subroutine that the cvxopt package can call to get
                     values of the function, gradient and hessian during
