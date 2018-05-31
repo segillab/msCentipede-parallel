@@ -314,10 +314,17 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        my_pool = Pool(self.J)
-        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
-        my_pool.close()
-        my_pool.join()
+        # my_pool = Pool(self.J)
+        # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        # my_pool.close()
+        # my_pool.join()
+        results = []
+        queues = [Queue() for i in range(self.J)]
+        jobs   = [Process(target=parallel_optimize, args=((self.value[j].copy(), arg_vals[j]))) for j in range(self.J)]
+
+        for job in jobs: job.start()
+        for q in queues: results.append(q.get())
+        for job in jobs: job.join()
 
 
         for j in range(self.J):
@@ -522,10 +529,17 @@ class Tau():
 
 
 
-        my_pool = Pool(self.J)
-        results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
-        my_pool.close()
-        my_pool.join()
+        # my_pool = Pool(self.J)
+        # results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
+        # my_pool.close()
+        # my_pool.join()
+        results = []
+        queues = [Queue() for i in range(self.J)]
+        jobs   = [Process(target=tau_parallel_optimize, args=((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]))) for j in range(self.J)]
+
+        for job in jobs: job.start()
+        for q in queues: results.append(q.get())
+        for job in jobs: job.join()
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
