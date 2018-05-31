@@ -1,6 +1,6 @@
 import numpy as np
 import random
-import cPickle
+import pickle
 import load_data
 import mscentipedepy as mscentipede
 import argparse
@@ -29,13 +29,13 @@ def learn_model(options):
     handle = open(options.log_file,'a')
     handle.write(log)
     handle.close()
-    print log
+    print(log)
 
     motif_handle = load_data.ZipFile(options.motif_file)
     locations = motif_handle.read()
     motif_handle.close()
     if np.any([len(loc)<5 for loc in locations]):
-        print "error: ensure all rows in motif instance file contain same number of columns"
+        print("error: ensure all rows in motif instance file contain same number of columns")
         sys.exit(1)
 
     if len(locations)>options.batch:
@@ -51,21 +51,21 @@ def learn_model(options):
     try:
         scores = np.array([loc[4:] for loc in locations]).astype('float')
     except ValueError:
-        print "error: column 5 and higher should all be numeric values."
+        print("error: column 5 and higher should all be numeric values.")
         sys.exit(1)
 
     handle = open(options.log_file,'a')
     handle.write("done\n")
     handle.write("num of motif sites = %d\n"%(scores.shape[0]))
     handle.close()
-    print "num of motif sites = %d"%(scores.shape[0])
+    print("num of motif sites = %d"%(scores.shape[0]))
 
     # load read data within specified window size
     log = "loading read counts ... "
     handle = open(options.log_file,'a')
     handle.write(log)
     handle.close()
-    print log
+    print(log)
 
     bam_handles = [load_data.BamFile(bam_file, options.protocol) for bam_file in options.bam_files]
     count_data = np.array([bam_handle.get_read_counts(locations, width=options.window) \
@@ -89,7 +89,7 @@ def learn_model(options):
         handle = open(options.log_file,'a')
         handle.write(log)
         handle.close()
-        print log
+        print(log)
 
         bam_handle = load_data.BamFile(options.bam_file_genomicdna, options.protocol)
         bg_count_data = np.array([bam_handle.get_read_counts(locations, width=options.window)])
@@ -108,13 +108,13 @@ def learn_model(options):
     handle = open(options.log_file,'a')
     handle.write(log)
     handle.close()
-    print log
+    print(log)
 
     # save model parameter estimates
     model_handle = open(options.model_file, 'w')
-    cPickle.Pickler(model_handle,protocol=2).dump(footprint_model)
-    cPickle.Pickler(model_handle,protocol=2).dump(count_model)
-    cPickle.Pickler(model_handle,protocol=2).dump(prior)
+    pickle.Pickler(model_handle,protocol=2).dump(footprint_model)
+    pickle.Pickler(model_handle,protocol=2).dump(count_model)
+    pickle.Pickler(model_handle,protocol=2).dump(prior)
     model_handle.close()
 
     handle = open(options.log_file,'a')
@@ -125,19 +125,19 @@ def infer_binding(options):
 
     # load the model
     handle = open(options.model_file, "r")
-    footprint_model = cPickle.load(handle)
-    count_model = cPickle.load(handle)
-    prior = cPickle.load(handle)
+    footprint_model = pickle.load(handle)
+    count_model = pickle.load(handle)
+    prior = pickle.load(handle)
     handle.close()
 
     # check if specified window size matches window size in model parameters
     if options.protocol=="DNase_seq":
         if 2**footprint_model[0].J!=options.window*2:
-            print "Window size in model (%d bp) different from specified window size (%d bp). Using size in model ... \n"%(2**footprint_model[0].J/2, options.window)
+            print("Window size in model (%d bp) different from specified window size (%d bp). Using size in model ... \n"%(2**footprint_model[0].J/2, options.window))
             options.window = 2**footprint_model[0].J/2
     elif options.protocol=="ATAC_seq":
         if 2**footprint_model[0].J!=options.window:
-            print "Window size in model (%d bp) different from specified window size (%d bp). Using size in model ... \n"%(2**footprint_model[0].J, options.window)
+            print("Window size in model (%d bp) different from specified window size (%d bp). Using size in model ... \n"%(2**footprint_model[0].J, options.window))
             options.window = 2**footprint_model[0].J
 
     # load motifs
@@ -178,7 +178,7 @@ def infer_binding(options):
     header = ['Chr','Start','Stop','Strand','LogPosOdds','LogPriorOdds','MultLikeRatio','NegBinLikeRatio']
     handle.write('\t'.join(header)+'\n')
 
-    for n in xrange(loops):
+    for n in range(loops):
         starttime = time.time()
         locations = motif_handle.read(batch=options.batch)
 
@@ -206,7 +206,7 @@ def infer_binding(options):
         ignore = [loc.extend(['%.4f'%p for p in pos])
             for loc,pos in zip(towrite,output)]
         ignore = [handle.write('\t'.join(map(str,elem))+'\n') for elem in towrite]
-        print len(locations), time.time()-starttime
+        print(len(locations), time.time()-starttime)
 
     handle.close()
     if options.model in ['msCentipede_flexbgmean','msCentipede_flexbg']:
