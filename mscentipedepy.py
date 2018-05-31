@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import cvxopt as cvx
 from cvxopt import solvers
