@@ -299,7 +299,8 @@ class Pi(Data):
         # for q in queues: results.append(q.get())
         # for job in jobs: job.join()
 
-        results = run_parallel(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)), 21, data.R, self.J)
+        results = run_parallel({'Process': parallel_optimize_process, 'Pool': parallel_optimize_pool},
+                              ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.value[j] = results[j]
@@ -310,7 +311,7 @@ def run_parallel(f, arg_values, cores, reps, J):
         results = []
         queues  = [Queue() for i in range(J)]
         arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f, args=(list(arg_values[i]))) for i in range(J)]
+        jobs    = [Process(target=f['Process'], args=(list(arg_values[i]))) for i in range(J)]
 
         for job in jobs:
             job.start()
@@ -321,10 +322,14 @@ def run_parallel(f, arg_values, cores, reps, J):
         return results
     else:
         print("Running optimize with Pool")
+        arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
         my_pool = Pool(cores / reps)
-        return my_pool.map(f, arg_values)
+        return my_pool.map(f['Pool'], arg_values)
 
-def parallel_optimize(params):
+def parallel_optimize_process(xo, args, queue):
+    return parallel_optimize((xo, args, queue))
+
+def parallel_optimize_pool(params):
     xo, args, queue = params
 
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
