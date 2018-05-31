@@ -23,7 +23,7 @@ MAX = np.finfo(np.double).max
 logistic = lambda x: 1./(1+np.exp(x))
 insum = lambda x,axes: np.apply_over_axes(np.sum,x,axes)
 
-@jit
+# @jit
 def polygamma2(n, x, d):
 
     n_arr = np.asarray(n)
@@ -31,11 +31,11 @@ def polygamma2(n, x, d):
     fac2 = (-1.0)**(n_arr+1) * scipy.special.gamma(n_arr+1.0) * scipy.special.zeta(n_arr+1, x_arr)
     return np.where(n_arr == 0, d, fac2)
 
-@jit
+# @jit
 def digamma3(x):
     return np.vectorize(digamma2)(x)
 
-@jit
+# @jit
 def digamma2(x):
  #  Check the input.
  #
@@ -73,7 +73,7 @@ def digamma2(x):
     - r * ( 1.0 / 132.0 ) ) ) ) )
   return value
 
-@jit
+# @jit
 def outsum(arr):
     """Summation over the first axis, without changing length of shape.
 
@@ -94,7 +94,7 @@ def outsum(arr):
     thesum = thesum.reshape(tuple(shape))
     return thesum
 
-@jit
+# @jit
 def nplog(x):
     """Compute the natural logarithm, handling very
     small floats appropriately.
@@ -127,7 +127,7 @@ class Data:
         self.valueB = dict()
         self.total = dict()
 
-    @jit
+    # @jit
     def transform_to_multiscale(self, reads):
         """Transform a vector of read counts
         into a multiscale representation.
@@ -148,7 +148,7 @@ class Data:
             self.valueA[j] = np.array([reads[:,k*size:(k+1)*size,:].sum(1) for k in xrange(0,2**(j+1),2)]).T
             self.valueB[j] = self.total[j] - self.valueA[j]
 
-    @jit
+    # @jit
     def inverse_transform(self):
         """Transform a multiscale representation of the data or parameters,
         into vector representation.
@@ -167,7 +167,7 @@ class Data:
 
         return profile
 
-    @jit
+    # @jit
     def copy(self):
         """ Create a copy of the class instance
         """
@@ -216,7 +216,7 @@ class Zeta():
             self.estim = np.exp(self.estim - np.max(self.estim,1).reshape(self.N,1))
             self.estim = self.estim / insum(self.estim,[1])
 
-    @jit
+    # @jit
     def update(self, data, scores, \
         pi, tau, alpha, beta, omega, \
         pi_null, tau_null, model):
@@ -240,7 +240,7 @@ class Zeta():
         self.estim = np.exp(self.estim-np.max(self.estim,1).reshape(self.N,1))
         self.estim = self.estim/insum(self.estim,[1])
 
-    @jit
+    # @jit
     def infer(self, data, scores, \
         pi, tau, alpha, beta, omega, \
         pi_null, tau_null, model):
@@ -287,7 +287,7 @@ class Pi(Data):
     def __reduce__(self):
         return (rebuild_Pi, (self.J, self.value))
 
-    @jit
+    # @jit
     def update(self, data, zeta, tau):
         """Update the estimates of parameter `p` (and `p_o`) in the model.
         """
@@ -323,7 +323,7 @@ class Pi(Data):
         for j in range(self.J):
             self.value[j] = results[j]
 
-@jit
+# @jit
 def parallel_optimize(xo_and_args):
     xo, args = xo_and_args
 
@@ -339,14 +339,14 @@ def parallel_optimize(xo_and_args):
 
     return my_x_final
 
-@jit
+# @jit
 def rebuild_Pi(J, value):
 
     pi = Pi(J)
     pi.value = value
     return pi
 
-@jit
+# @jit
 def pi_gamma_calculations(val_A, val_B, alpha, beta, queue):
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
@@ -354,7 +354,7 @@ def pi_gamma_calculations(val_A, val_B, alpha, beta, queue):
     new_df   = digamma3(data_alpha) - digamma3(data_beta)
     queue.put((new_func, new_df))
 
-@jit
+# @jit
 def pi_function_gradient(x, args):
 
     """Computes part of the likelihood function that has
@@ -399,7 +399,7 @@ def pi_function_gradient(x, args):
 
     return f, Df
 
-@jit
+# @jit
 def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
@@ -414,7 +414,7 @@ def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
 
     queue.put((new_func, new_df, new_hf))
 
-@jit
+# @jit
 def pi_function_gradient_hessian(x, args):
 
     """Computes part of the likelihood function that has
@@ -489,7 +489,7 @@ class Tau():
     def __reduce__(self):
         return (rebuild_Tau, (self.J,self.estim))
 
-    @jit
+    # @jit
     def update(self, data, zeta, pi):
         """Update the estimates of parameter `tau` (and `tau_o`) in the model.
         """
@@ -538,7 +538,7 @@ class Tau():
             print "Inf in Tau"
             raise ValueError
 
-@jit
+# @jit
 def tau_parallel_optimize(params):
     xo, xmin, minj, args = params
     try:
@@ -552,14 +552,14 @@ def tau_parallel_optimize(params):
 
     return x_final
 
-@jit
+# @jit
 def rebuild_Tau(J, estim):
 
     tau = Tau(J)
     tau.estim = estim
     return tau
 
-@jit
+# @jit
 def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
@@ -575,7 +575,7 @@ def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
 
     queue.put((new_func, new_df))
 
-@jit
+# @jit
 def tau_function_gradient(x, args):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient.
@@ -623,7 +623,7 @@ def tau_function_gradient(x, args):
 
     return F, Df
 
-@jit
+# @jit
 def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
@@ -647,7 +647,7 @@ def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, que
 
     queue.put((new_func, new_df, new_hf))
 
-@jit
+# @jit
 def tau_function_gradient_hessian(x, args):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient and hessian.
@@ -725,7 +725,7 @@ class Alpha():
     def __reduce__(self):
         return (rebuild_Alpha, (self.R,self.estim))
 
-    @jit
+    # @jit
     def update(self, zeta, omega):
         """Update the estimates of parameter `alpha` in the model.
         """
@@ -754,14 +754,14 @@ class Alpha():
             print "Inf in Alpha"
             raise ValueError
 
-@jit
+# @jit
 def rebuild_Alpha(R, estim):
 
     alpha = Alpha(R)
     alpha.estim = estim
     return alpha
 
-@jit
+# @jit
 def alpha_function_gradient(x, args):
     """Computes part of the likelihood function that has
     terms containing `alpha`, and its gradient
@@ -788,7 +788,7 @@ def alpha_function_gradient(x, args):
 
     return f, Df
 
-@jit
+# @jit
 def alpha_function_gradient_hessian(x, args):
     """Computes part of the likelihood function that has
     terms containing `alpha`, and its gradient and hessian
@@ -845,7 +845,7 @@ class Omega():
     def __reduce__(self):
         return (rebuild_Omega, (self.R,self.estim))
 
-    @jit
+    # @jit
     def update(self, zeta, alpha):
         """Update the estimates of parameter `omega` in the model.
         """
@@ -863,7 +863,7 @@ class Omega():
             print "Inf in Omega"
             raise ValueError
 
-@jit
+# @jit
 def rebuild_Omega(R, estim):
 
     omega = Omega(R)
@@ -891,7 +891,7 @@ class Beta():
     def __reduce__(self):
         return (rebuild_Beta, (self.S,self.estim))
 
-    @jit
+    # @jit
     def update(self, scores, zeta):
         """Update the estimates of parameter `beta` in the model.
         """
@@ -912,14 +912,14 @@ class Beta():
             print "Inf in Beta"
             raise ValueError
 
-@jit
+# @jit
 def rebuild_Beta(S, estim):
 
     beta = Beta(S)
     beta.estim = estim
     return beta
 
-@jit
+# @jit
 def beta_function_gradient(x, args):
     """Computes part of the likelihood function that has
     terms containing `beta`, and its gradient.
@@ -937,7 +937,7 @@ def beta_function_gradient(x, args):
 
     return f, Df
 
-@jit
+# @jit
 def beta_function_gradient_hessian(x, args):
     """Computes part of the likelihood function that has
     terms containing `beta`, and its gradient and hessian.
@@ -1037,7 +1037,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args):
 
     return x_final
 
-@jit
+# @jit
 def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
     """Evaluates the likelihood function for the
     footprint part of the bound model and background model.
@@ -1091,7 +1091,7 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
 
     return lhood_bound, lhood_unbound
 
-@jit
+# @jit
 def likelihood(data, scores, \
     zeta, pi, tau, alpha, beta, \
     omega, pi_null, tau_null, model):
@@ -1173,7 +1173,7 @@ def likelihood(data, scores, \
 
     return L
 
-@jit
+# @jit
 def EM(data, scores, \
     zeta, pi, tau, alpha, beta, \
     omega, pi_null, tau_null, model):
@@ -1245,7 +1245,7 @@ def EM(data, scores, \
     beta.update(scores, zeta)
     #print "beta update in %.3f secs"%(time.time()-starttime)
 
-@jit
+# @jit
 def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model):
     """Accelerated update of model parameters and posterior probability of binding.
 
@@ -1339,7 +1339,7 @@ def square_EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null
 
     EM(data, scores, zeta, pi, tau, alpha, beta, omega, pi_null, tau_null, model)
 
-@jit
+# @jit
 def estimate_optimal_model(reads, totalreads, scores, background, model, log_file, restarts, mintol):
     """Learn the model parameters by running an EM algorithm till convergence.
     Return the optimal parameter estimates from a number of EM results starting
@@ -1519,7 +1519,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
 
     return footprint_model, count_model, prior
 
-@jit
+# @jit
 def infer_binding_posterior(reads, totalreads, scores, background, footprint, negbinparams, prior, model):
     """Infer posterior probability of factor binding, given optimal model parameters.
 
