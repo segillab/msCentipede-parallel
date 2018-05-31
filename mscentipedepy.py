@@ -311,16 +311,16 @@ class Pi(Data):
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
         results = run_parallel({'Process': parallel_optimize_process, 'Pool': parallel_optimize_pool},
-                              ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)), 21, data.R, self.J)
+                              ((self.value[j].copy(), arg_vals[j], self.J) for j in range(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.value[j] = results[j]
 
-def parallel_optimize_process(xo, args, queue, J):
-    return parallel_optimize_pool((xo, args, queue, J))
+def parallel_optimize_process(xo, args, J, queue):
+    return parallel_optimize_pool((xo, args, J, queue))
 
 def parallel_optimize_pool(params):
-    xo, args, queue, J = params
+    xo, args, J, queue = params
 
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args, J)
 
@@ -508,7 +508,7 @@ class Tau():
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
         results = run_parallel({'Process': tau_parallel_optimize_process, 'Pool': tau_parallel_optimize_pool},
-                              ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)), 21, data.R, self.J)
+                              ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], self.J) for j in xrange(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
@@ -521,11 +521,11 @@ class Tau():
             print("Inf in Tau")
             raise ValueError
 
-def tau_parallel_optimize_process(xo, xmin, minj, args, queue, J):
-    return tau_parallel_optimize_pool((xo, xmin, minj, args, queue))
+def tau_parallel_optimize_process(xo, xmin, minj, args, J, queue):
+    return tau_parallel_optimize_pool((xo, xmin, minj, args, J, queue))
 
 def tau_parallel_optimize_pool(params):
-    xo, xmin, minj, args, queue, J = params
+    xo, xmin, minj, args, J, queue = params
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args, J)
     except ValueError:
