@@ -506,17 +506,6 @@ class Tau():
             # additional arguments
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
-        my_pool = Pool(self.J)
-        results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
-        # my_pool.close()
-        # my_pool.join()
-        # results = []
-        # queues = [Queue() for i in range(self.J)]
-        # jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in range(self.J)]
-        #
-        # for job in jobs: job.start()
-        # for q in queues: results.append(q.get())
-        # for job in jobs: job.join()
         results = run_parallel({'Process': tau_parallel_optimize_process, 'Pool': tau_parallel_optimize_pool},
                               ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)), 21, data.R, self.J)
 
