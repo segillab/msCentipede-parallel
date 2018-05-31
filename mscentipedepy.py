@@ -97,7 +97,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
         results = []
         queues  = [Queue() for i in range(range_val)]
         arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f['Pool'], args=(arg_values[i],)) for i in range(range_val)]
+        jobs    = [Process(target=f, args=(arg_values[i],)) for i in range(range_val)]
 
         for job in jobs:
             job.start()
@@ -112,7 +112,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
         arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
         cores_to_use = math.floor(cores / float(reps))
         my_pool = Pool(cores_to_use if cores_to_use > 0 else 1)
-        return my_pool.map(f['Pool'], arg_values)
+        return my_pool.map(f, arg_values)
 
 
 class Data:
@@ -315,16 +315,13 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        results = run_parallel({'Process': parallel_optimize_process, 'Pool': parallel_optimize_pool},
+        results = run_parallel(pi_parallel_optimize,
                               ((self.value[j].copy(), arg_vals[j], self.J) for j in range(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.value[j] = results[j]
 
-def parallel_optimize_process(xo, args, J, queue):
-    return parallel_optimize_pool((xo, args, J, queue))
-
-def parallel_optimize_pool(params):
+def pi_parallel_optimize(params):
     xo, args, J, queue = params
 
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args, J)
@@ -348,10 +345,7 @@ def rebuild_Pi(J, value):
     pi.value = value
     return pi
 
-def pi_gamma_calculations_process(val_A, val_B, alpha, beta, queue):
-    return pi_gamma_calculations_pool((val_A, val_B, alpha, beta, queue))
-
-def pi_gamma_calculations_pool(params):
+def pi_gamma_calculations(params):
     val_A, val_B, alpha, beta, queue = params
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
@@ -384,7 +378,7 @@ def pi_function_gradient(x, args, J_iter):
     val_A = data.valueA[j]
     val_B = data.valueB[j]
 
-    results = run_parallel({'Process': pi_gamma_calculations_process, 'Pool': pi_gamma_calculations_pool},
+    results = run_parallel(pi_gamma_calculations,
                           ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
@@ -401,10 +395,7 @@ def pi_function_gradient(x, args, J_iter):
 
     return f, Df
 
-def pi_gamma_calculations_hess_process(val_A, val_B, alpha, beta, queue):
-    return pi_gamma_calculations_hess_pool((val_A, val_B, alpha, beta, queue))
-
-def pi_gamma_calculations_hess_pool(params):
+def pi_gamma_calculations_hess(params):
     val_A, val_B, alpha, beta, queue = params
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
@@ -446,7 +437,7 @@ def pi_function_gradient_hessian(x, args, J_iter):
     val_A = data.valueA[j]
     val_B = data.valueB[j]
 
-    results = run_parallel({'Process': pi_gamma_calculations_hess_process, 'Pool': pi_gamma_calculations_hess_pool},
+    results = run_parallel(pi_gamma_calculations_hess,
                           ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
@@ -516,7 +507,7 @@ class Tau():
             # additional arguments
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
-        results = run_parallel({'Process': tau_parallel_optimize_process, 'Pool': tau_parallel_optimize_pool},
+        results = run_parallel(tau_parallel_optimize,
                               ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], self.J) for j in xrange(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
@@ -530,10 +521,7 @@ class Tau():
             print("Inf in Tau")
             raise ValueError
 
-def tau_parallel_optimize_process(xo, xmin, minj, args, J, queue):
-    return tau_parallel_optimize_pool((xo, xmin, minj, args, J, queue))
-
-def tau_parallel_optimize_pool(params):
+def tau_parallel_optimize(params):
     xo, xmin, minj, args, J, queue = params
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args, J)
