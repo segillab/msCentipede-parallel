@@ -108,7 +108,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
         return results
     else:
         print("Running optimize with Pool")
-        pritn("cores = {}, reps = {}, J = {}".format(cores, reps, J))
+        print("cores = {}, reps = {}, J = {}".format(cores, reps, J))
         arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
         cores_to_use = math.floor(cores / float(reps))
         my_pool = Pool(cores_to_use if cores_to_use > 0 else 1)
