@@ -1389,7 +1389,7 @@ def estimate_optimal_model(reads, totalreads, scores, background, model, log_fil
     data.transform_to_multiscale(reads)
     data_null = Data()
     data_null.transform_to_multiscale(background)
-    del reads
+    # del reads
 
     # transform matrix of PWM scores and other prior information
     scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
