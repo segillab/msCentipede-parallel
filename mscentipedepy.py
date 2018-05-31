@@ -114,8 +114,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
         if not is_update:
             return map(f, arg_values)
         else:
-            cores_to_use = math.floor(cores / float(reps))
-            my_pool = Pool(cores_to_use if cores_to_use > 0 else 1)
+            my_pool = Pool(cores if cores > 0 else 1)
             return my_pool.map(f, arg_values)
 
 
