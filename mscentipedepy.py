@@ -973,7 +973,7 @@ def beta_function_gradient_hessian(x, args):
 
     return f, Df, Hf
 
-@jit
+# @jit
 def optimizer(xo, function_gradient, function_gradient_hessian, args):
     """Calls the appropriate nonlinear convex optimization solver
     in the package `cvxopt` to find optimal values for the relevant
@@ -991,7 +991,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args):
         evaluates the hessian of the function
 
     """
-    @jit
+    # @jit
     def F(x=None, z=None):
         """A subroutine that the cvxopt package can call to get
         values of the function, gradient and hessian during
