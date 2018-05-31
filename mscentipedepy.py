@@ -1033,8 +1033,8 @@ def compute_footprint_likelihood(data, pi, tau, pi_null, tau_null, model):
 
     """
 
-    lhood_bound = Data()
-    lhood_unbound = Data()
+    lhood_bound = Data(data.cores)
+    lhood_unbound = Data(data.cores)
 
     for j in range(data.J):
         valueA = np.sum(data.valueA[j],0)
@@ -1526,9 +1526,9 @@ def infer_binding_posterior(reads, totalreads, scores, background, footprint, ne
 
     """
 
-    data = Data()
+    data = Data(1)
     data.transform_to_multiscale(reads)
-    data_null = Data()
+    data_null = Data(1)
     data_null.transform_to_multiscale(background)
     scores = np.hstack((np.ones((data.N,1), dtype=float), scores))
     del reads
