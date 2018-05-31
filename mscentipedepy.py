@@ -76,7 +76,6 @@ def digamma2(x):
     - r * ( 1.0 / 132.0 ) ) ) ) )
   return value
 
-@jit
 def nplog(x):
     """Compute the natural logarithm, handling very
     small floats appropriately.
