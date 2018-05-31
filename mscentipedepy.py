@@ -332,7 +332,7 @@ class Pi(Data):
 
 # @jit
 def parallel_optimize(xo, args, queue):
-    xo, args = xo_and_args
+    # xo, args = xo_and_args
 
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
