@@ -363,7 +363,7 @@ def pi_gamma_calculations_pool(params):
     else:
         return (new_func, new_df)
 
-def pi_function_gradient(x, args, J):
+def pi_function_gradient(x, args, J_iter):
 
     """Computes part of the likelihood function that has
     terms containing `pi`, along with its gradient
@@ -394,7 +394,7 @@ def pi_function_gradient(x, args, J):
     # for job in jobs: job.join()
 
     results = run_parallel({'Process': pi_gamma_calculations_process, 'Pool': pi_gamma_calculations_pool},
-                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J, is_update=False)
+                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), 21, data.R, J_iter, is_update=False)
 
     for r in range(data.R):
         this_result = results[r]
@@ -424,7 +424,7 @@ def pi_gamma_calculations_hess(val_A, val_B, alpha, beta, queue):
 
     queue.put((new_func, new_df, new_hf))
 
-def pi_function_gradient_hessian(x, args, J):
+def pi_function_gradient_hessian(x, args, J_iter):
 
     """Computes part of the likelihood function that has
     terms containing `pi`, along with its gradient and hessian
@@ -578,7 +578,7 @@ def tau_gamma_calculations(val_A, val_B, val_T, alpha, beta, x, pi_val, queue):
 
     queue.put((new_func, new_df))
 
-def tau_function_gradient(x, args, J):
+def tau_function_gradient(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient.
     """
@@ -648,7 +648,7 @@ def tau_gamma_calculations_hess(val_A, val_B, val_T, alpha, beta, x, pi_val, que
 
     queue.put((new_func, new_df, new_hf))
 
-def tau_function_gradient_hessian(x, args, J):
+def tau_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient and hessian.
     """
