@@ -87,6 +87,27 @@ def nplog(x):
         x = max([x,EPS])
     return np.log(x)
 
+def run_parallel(f, arg_values, cores, reps, J):
+    if cores >= reps * J:
+        print("Running optimize with Process")
+        results = []
+        queues  = [Queue() for i in range(J)]
+        arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
+        jobs    = [Process(target=f['Process'], args=(list(arg_values[i]))) for i in range(J)]
+
+        for job in jobs:
+            job.start()
+        for queue in queues:
+            results.append(queue.get())
+        for job in jobs:
+            job.join()
+        return results
+    else:
+        print("Running optimize with Pool")
+        arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
+        my_pool = Pool(cores / reps)
+        return my_pool.map(f['Pool'], arg_values)
+
 
 class Data:
     """
@@ -288,43 +309,11 @@ class Pi(Data):
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        # my_pool = Pool(self.J)
-        # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
-
-        # results = []
-        # queues = [Queue() for i in range(self.J)]
-        # jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in range(self.J)]
-        #
-        # for job in jobs: job.start()
-        # for q in queues: results.append(q.get())
-        # for job in jobs: job.join()
-
         results = run_parallel({'Process': parallel_optimize_process, 'Pool': parallel_optimize_pool},
                               ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.value[j] = results[j]
-
-def run_parallel(f, arg_values, cores, reps, J):
-    if cores >= reps * J:
-        print("Running optimize with Process")
-        results = []
-        queues  = [Queue() for i in range(J)]
-        arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f['Process'], args=(list(arg_values[i]))) for i in range(J)]
-
-        for job in jobs:
-            job.start()
-        for queue in queues:
-            results.append(queue.get())
-        for job in jobs:
-            job.join()
-        return results
-    else:
-        print("Running optimize with Pool")
-        arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
-        my_pool = Pool(cores / reps)
-        return my_pool.map(f['Pool'], arg_values)
 
 def parallel_optimize_process(xo, args, queue):
     return parallel_optimize_pool((xo, args, queue))
@@ -528,6 +517,8 @@ class Tau():
         # for job in jobs: job.start()
         # for q in queues: results.append(q.get())
         # for job in jobs: job.join()
+        results = run_parallel({'Process': tau_parallel_optimize_process, 'Pool': tau_parallel_optimize_pool},
+                              ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)), 21, data.R, self.J)
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
@@ -540,21 +531,11 @@ class Tau():
             print("Inf in Tau")
             raise ValueError
 
-# def tau_parallel_optimize(xo, xmin, minj, args, queue):
-#     # xo, xmin, minj, args = params
-#     try:
-#         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
-#     except ValueError:
-#         xo = xmin+100*np.random.rand()
-#         bounds = [(minj, None)]
-#         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
-#             args=(args,), bounds=bounds)
-#         x_final = solution[0]
-#
-#     queue.put(x_final)
+def tau_parallel_optimize_process(xo, xmin, minj, args, queue):
+    return tau_parallel_optimize_pool((xo, xmin, minj, args, queue))
 
-def tau_parallel_optimize(params):
-    xo, xmin, minj, args = params
+def tau_parallel_optimize_pool(params):
+    xo, xmin, minj, args, queue = params
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
     except ValueError:
@@ -564,8 +545,10 @@ def tau_parallel_optimize(params):
             args=(args,), bounds=bounds)
         x_final = solution[0]
 
-    # queue.put(x_final)
-    return x_final
+    if queue is not None:
+        queue.put(x_final)
+    else:
+        return x_final
 
 
 def rebuild_Tau(J, estim):
