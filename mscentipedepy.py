@@ -420,10 +420,11 @@ class Pi(Data):
 
             return my_x_final
 
-        my_pool = Pool(self.J)
-        results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
-        my_pool.close()
-        my_pool.join()
+        # my_pool = Pool(self.J)
+        # results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
+        # my_pool.close()
+        # my_pool.join()
+        results = map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in range(self.J)))
 
         for j in range(self.J):
             self.value[j] = results[j]
