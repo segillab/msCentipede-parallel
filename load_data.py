@@ -12,9 +12,9 @@ MIN_READ_LEN = 1
 MAX_READ_LEN = 100000
 
 class ZipFile():
-    """File class to rapidly handle some file operations on 
-    a gzip file. To greatly increase speed, methods in this class 
-    use the system's `zcat` function to read each line of the 
+    """File class to rapidly handle some file operations on
+    a gzip file. To greatly increase speed, methods in this class
+    use the system's `zcat` function to read each line of the
     file, rather than the `gzip` module.
 
     Arguments
@@ -28,7 +28,7 @@ class ZipFile():
             pipe = subprocess.Popen(["zcat", filename], stdout=subprocess.PIPE)
             self.handle = pipe.stdout
             # remove header
-            header = self.handle.next()
+            header = next(self.handle)
         else:
             raise IOError
 
@@ -60,12 +60,12 @@ class ZipFile():
 
         return locations
 
-    def close(self): 
-      
+    def close(self):
+
         pass
 
 class BamFile():
-    """File class to handle some file operations on 
+    """File class to handle some file operations on
     a bam file.
 
     Arguments
@@ -79,7 +79,7 @@ class BamFile():
 
     def __init__(self, filename, protocol):
 
-    	self._handle = pysam.Samfile(filename, "rb")
+        self._handle = pysam.Samfile(filename, "rb")
         self._protocol = protocol
         self._ref_lengths = dict([(r,l) \
             for r,l in zip(self._handle.references,self._handle.lengths)])
@@ -91,7 +91,7 @@ class BamFile():
 
         Arguments:
             locations : list
-            each entry of the list is a list that specifies 
+            each entry of the list is a list that specifies
             information for a motif instance
 
             width : int
@@ -142,7 +142,7 @@ class BamFile():
                     else:
                         forward[start-left] += 1
 
-                # flip fwd and rev strand read counts, 
+                # flip fwd and rev strand read counts,
                 # if the motif is on the opposite strand.
                 if strand=='+':
                     count = [forward, reverse]
