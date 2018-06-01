@@ -151,14 +151,15 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
             # Need to reduce cores by J and divide by replicates
             # Not sure if I should subtract out J and divide or just divide
             cores = int(math.floor((cores - J) / float(J)))
-            if cores <= 1:
-                return map(f, arg_values)
+            if cores >= reps:
+                return run_process(f, arg_values, range_val)
             else:
-                if cores >= reps:
-                    return run_process(f, arg_values, range_val)
-                else:
+                arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
+                if cores > 1:
                     my_pool = Pool(cores)
                     return my_pool.map(f, arg_values)
+                else:
+                    return map(f, arg_values)
 
 
 class Data:
