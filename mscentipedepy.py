@@ -87,6 +87,7 @@ def nplog(x):
         x = max([x,EPS])
     return np.log(x)
 
+@jit
 def run_process(f, arg_values, range_val):
     results = []
     queues  = [Queue() for i in range(range_val)]
