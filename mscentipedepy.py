@@ -151,7 +151,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
         else:
             # Need to reduce cores by J and divide by replicates
             # Not sure if I should subtract out J and divide or just divide
-            cores = int(math.floor((cores - J) / float(J)))
+            cores = int(math.floor(cores / float(J)))
             if cores >= reps:
                 return run_process(f, arg_values, range_val)
             else:
