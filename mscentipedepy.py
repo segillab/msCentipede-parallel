@@ -87,35 +87,78 @@ def nplog(x):
         x = max([x,EPS])
     return np.log(x)
 
+def run_process(f, arg_values, range_val):
+    results = []
+    queues  = [Queue() for i in range(range_val)]
+    arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
+    jobs    = [Process(target=f, args=(arg_values[i],)) for i in range(range_val)]
+
+    for job in jobs:
+        job.start()
+    for queue in queues:
+        results.append(queue.get())
+    for job in jobs:
+        job.join()
+    return results
+
 def run_parallel(f, arg_values, cores, reps, J, is_update=True):
-    processes_needed = reps * J if is_update else reps
+    # processes_needed = reps * J if is_update else reps
+    # range_val = J if is_update else reps
+    # if not is_update:
+    #     cores = math.floor(cores / float(J))
+    # if cores >= processes_needed:
+    #     # print("Running optimize with Process")
+    #     results = []
+    #     queues  = [Queue() for i in range(range_val)]
+    #     arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
+    #     jobs    = [Process(target=f, args=(arg_values[i],)) for i in range(range_val)]
+    #
+    #     for job in jobs:
+    #         job.start()
+    #     for queue in queues:
+    #         results.append(queue.get())
+    #     for job in jobs:
+    #         job.join()
+    #     return results
+    # else:
+    #     # print("Running optimize with Pool")
+    #     # print("cores = {}, reps = {}, J = {}".format(cores, reps, J))
+    #
+    #     arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
+    #     if not is_update:
+    #         return map(f, arg_values)
+    #     else:
+    #         my_pool = Pool(cores if cores > 0 else 1)
+    #         return my_pool.map(f, arg_values)
     range_val = J if is_update else reps
     if not is_update:
-        cores = math.floor(cores / float(J))
-    if cores >= processes_needed:
-        # print("Running optimize with Process")
-        results = []
-        queues  = [Queue() for i in range(range_val)]
-        arg_values = [arg + (queues[index],) for index, arg in enumerate(arg_values)]
-        jobs    = [Process(target=f, args=(arg_values[i],)) for i in range(range_val)]
-
-        for job in jobs:
-            job.start()
-        for queue in queues:
-            results.append(queue.get())
-        for job in jobs:
-            job.join()
-        return results
+        if cores >= J:
+            # Have enough cores for each optimization call, run with Process
+            return run_process(f, arg_values, range_val)
+        else:
+            # Do not have enough cores for optimization, must run with pool and gamma with map()
+            arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
+            if cores == 1:
+                return map(f, arg_values)
+            else:
+                my_pool = Pool(cores)
+                return my_pool.map(f, arg_values)
     else:
-        # print("Running optimize with Pool")
-        # print("cores = {}, reps = {}, J = {}".format(cores, reps, J))
-
-        arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
-        if not is_update:
+        # If optimization is running with Pool, must use map
+        if cores < J:
             return map(f, arg_values)
         else:
-            my_pool = Pool(cores if cores > 0 else 1)
-            return my_pool.map(f, arg_values)
+            # Need to reduce cores by J and divide by replicates
+            # Not sure if I should subtract out J and divide or just divide
+            cores = int(math.floor((cores - J) / float(J)))
+            if cores <= 1:
+                return map(f, arg_values)
+            else:
+                if cores >= reps:
+                    return run_process(f, arg_values, range_val)
+                else:
+                    my_pool = Pool(cores)
+                    return my_pool.map(f, arg_values)
 
 
 class Data:
