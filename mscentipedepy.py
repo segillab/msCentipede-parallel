@@ -16,7 +16,7 @@ from numba import jit
 # suppress optimizer output
 solvers.options['show_progress'] = False
 solvers.options['maxiters'] = 20
-np.random.seed(10)
+# np.random.seed(10)
 
 # defining some constants
 EPS = np.finfo(np.double).tiny
