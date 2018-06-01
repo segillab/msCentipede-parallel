@@ -146,6 +146,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
     else:
         # If optimization is running with Pool, must use map
         if cores < J:
+            arg_values = [arg + (None,) for index, arg in enumerate(arg_values)]
             return map(f, arg_values)
         else:
             # Need to reduce cores by J and divide by replicates
