@@ -87,7 +87,6 @@ def nplog(x):
         x = max([x,EPS])
     return np.log(x)
 
-@jit
 def run_process(f, arg_values, range_val):
     results = []
     queues  = [Queue() for i in range(range_val)]
@@ -102,6 +101,7 @@ def run_process(f, arg_values, range_val):
         job.join()
     return results
 
+@jit
 def run_parallel(f, arg_values, cores, reps, J, is_update=True):
     # processes_needed = reps * J if is_update else reps
     # range_val = J if is_update else reps
