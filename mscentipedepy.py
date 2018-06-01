@@ -131,7 +131,7 @@ def run_parallel(f, arg_values, cores, reps, J, is_update=True):
     #         my_pool = Pool(cores if cores > 0 else 1)
     #         return my_pool.map(f, arg_values)
     range_val = J if is_update else reps
-    if not is_update:
+    if is_update:
         if cores >= J:
             # Have enough cores for each optimization call, run with Process
             return run_process(f, arg_values, range_val)
