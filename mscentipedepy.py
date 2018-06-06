@@ -14,7 +14,7 @@ from numba import jit
 # from multiprocessing import Pool
 
 # suppress optimizer output
-solvers.options['show_progress'] = False
+solvers.options['show_progress'] = True
 solvers.options['maxiters'] = 20
 # np.random.seed(10)
 
