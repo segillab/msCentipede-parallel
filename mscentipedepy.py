@@ -238,7 +238,7 @@ class Data:
 
         return newcopy
 
-class Zeta():
+class Zeta:
     """
     Inference class to store and update (E-step) the posterior
     probability that a transcription factor is bound to a motif
@@ -317,7 +317,7 @@ class Zeta():
             + self.total_log_likelihood_ratio
 
 
-class Pi(Data):
+class Pi:
     """
     Class to store and update (M-step) the parameter `p` in the
     msCentipede model. It is also used for the parameter `p_o` in
@@ -511,7 +511,7 @@ def pi_function_gradient_hessian(x, args, J_iter):
 
     return f, Df, Hf
 
-class Tau():
+class Tau:
     """
     Class to store and update (M-step) the parameter `tau` in the
     msCentipede model. It is also used for the parameter `tau_o` in
@@ -578,7 +578,7 @@ def tau_parallel_optimize(params):
         xo = xmin+100*np.random.rand()
         bounds = [(minj, None)]
         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
-            args=(args, J), bounds=bounds)
+            args=(args, J,), bounds=bounds)
         x_final = solution[0]
 
     if queue is not None:
@@ -735,7 +735,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
 
     return F, Df, Hf
 
-class Alpha():
+class Alpha:
     """
     Class to store and update (M-step) the parameter `alpha` in negative
     binomial part of the msCentipede model. There is a separate parameter
@@ -850,7 +850,7 @@ def alpha_function_gradient_hessian(x, args, J_iter):
 
     return f, Df, Hf
 
-class Omega():
+class Omega:
     """
     Class to store and update (M-step) the parameter `omega` in negative
     binomial part of the msCentipede model. There is a separate parameter
@@ -894,7 +894,7 @@ def rebuild_Omega(R, estim):
     omega.estim = estim
     return omega
 
-class Beta():
+class Beta:
     """
     Class to store and update (M-step) the parameter `beta` in the logistic
     function in the prior of the msCentipede model.
