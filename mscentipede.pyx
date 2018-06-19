@@ -10,8 +10,6 @@ import scipy.optimize as spopt
 import sys, time, math, pdb
 from multiprocessing import Process
 from multiprocessing.queues import Queue
-from pathos.multiprocessing import ProcessingPool as Pool
-import contextlib
 
 # suppress optimizer output
 solvers.options['show_progress'] = True
@@ -79,7 +77,6 @@ cpdef double digamma2(np.float64_t x):
 def nplog(x):
     """Compute the natural logarithm, handling very
     small floats appropriately.
-
     """
     try:
         x[x<EPS] = EPS
@@ -93,10 +90,8 @@ cdef class Data:
     A data structure to store a multiscale representation of
     chromatin accessibility read counts across `N` genomic windows of
     length `L` in `R` replicates.
-
     Arguments
         reads : array
-
     """
 
     def __cinit__(self):
@@ -112,10 +107,8 @@ cdef class Data:
     cdef transform_to_multiscale(self, np.ndarray[np.float64_t, ndim=3] reads):
         """Transform a vector of read counts
         into a multiscale representation.
-
         .. note::
             See msCentipede manual for more details.
-
         """
 
         cdef long k, j, size
@@ -135,7 +128,6 @@ cdef class Data:
     def inverse_transform(self):
         """Transform a multiscale representation of the data or parameters,
         into vector representation.
-
         """
 
         if self.data:
@@ -174,11 +166,9 @@ cdef class Zeta:
     Inference class to store and update (E-step) the posterior
     probability that a transcription factor is bound to a motif
     instance.
-
     Arguments
         data : Data
         totalreads : array
-
     """
 
     def __cinit__(self, np.ndarray[np.float64_t, ndim=2] totalreads, long N, bool infer):
@@ -256,29 +246,27 @@ cdef class Zeta:
             + self.footprint_log_likelihood_ratio \
             + self.total_log_likelihood_ratio
 
-@cython.auto_pickle(True)
+
 cdef class Pi:
     """
     Class to store and update (M-step) the parameter `p` in the
     msCentipede model. It is also used for the parameter `p_o` in
     the msCentipede-flexbg model.
-
     Arguments
         J : int
         number of scales
-
     """
 
     def __cinit__(self, long J):
-        cdef long j
 
+        cdef long j
         self.J = J
         self.value = dict()
         for j from 0 <= j < self.J:
             self.value[j] = np.empty((2**j,), dtype='float')
 
     def __reduce__(self):
-        return (rebuild_Pi, (self.J, self.value))
+        return (rebuild_Pi, (self.J,self.value))
 
     def update(self, Data data, Zeta zeta, Tau tau):
         """Update the estimates of parameter `p` (and `p_o`) in the model.
@@ -288,8 +276,7 @@ cdef class Pi:
 
         # call optimizer
 
-
-        print "Number of Optimizer calls: %s" % str(self.J)
+        print "New J is: %s" % str(self.J)
 
         # Set up args
         arg_vals = []
@@ -306,18 +293,47 @@ cdef class Pi:
 
             arg_vals.append(dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)]))
 
-        # my_pool = Pool(self.J)
-        # my_pool.close()
-        # my_pool.join()
-        with contextlib.closing( Pool(self.J) ) as my_pool:
-            results = my_pool.map(parallel_optimize, ((self.value[j].copy(), arg_vals[j]) for j in xrange(self.J)))
+        results = []
+        queues = [Queue() for i in range(self.J)]
+        jobs   = [Process(target=parallel_optimize, args=(self.value[j].copy(), arg_vals[j], queues[j])) for j in xrange(self.J)]
+
+        for job in jobs: job.start()
+        for q in queues: results.append(q.get())
+        for job in jobs: job.join()
 
         for j in range(self.J):
             self.value[j] = results[j]
 
-def parallel_optimize(xo_and_args):
-    xo, args = xo_and_args
+        # for j in xrange(self.J):
+        #
+        #     # initialize optimization variable
+        #     xo = self.value[j].copy()
+        #     X = xo.size
+        #
+        #     # set constraints for optimization variable
+        #     xmin = 1./tau.estim[j]*np.ones((X,1),dtype=float)
+        #     xmax = (1-1./tau.estim[j])*np.ones((X,1),dtype=float)
+        #     G = np.vstack((np.diag(-1*np.ones((X,), dtype=float)), np.diag(np.ones((X,), dtype=float))))
+        #     h = np.vstack((-1*xmin,xmax))
+        #
+        #     # additional arguments
+        #     args = dict([('G',G),('h',h),('data',data),('zeta',zeta),('tau',tau),('zetaestim',zetaestim),('j',j)])
+        #
+        #     # call optimizer
+        #     x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
+        #
+        #     if np.isnan(x_final).any():
+        #         print "Nan in Pi"
+        #         raise ValueError
+        #
+        #     if np.isinf(x_final).any():
+        #         print "Inf in Pi"
+        #         raise ValueError
+        #
+        #     # store optimum in data structure
+        #     self.value[j] = x_final
 
+def parallel_optimize(xo, args, queue):
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args)
 
     if np.isnan(my_x_final).any():
@@ -328,7 +344,7 @@ def parallel_optimize(xo_and_args):
         print "Inf in Pi"
         raise ValueError
 
-    return my_x_final
+    queue.put(my_x_final)
 
 def rebuild_Pi(J, value):
 
@@ -474,11 +490,9 @@ cdef class Tau:
     Class to store and update (M-step) the parameter `tau` in the
     msCentipede model. It is also used for the parameter `tau_o` in
     the msCentipede-flexbg model.
-
     Arguments
         J : int
         number of scales
-
     """
 
     def __cinit__(self, long J):
@@ -494,7 +508,7 @@ cdef class Tau:
         """
 
         zetaestim = np.sum(zeta.estim[:,1])
-        print "Number of Optimizer calls: %s" % str(self.J)
+        print "New J is: %s" % str(self.J)
 
         arg_vals = []
         minj_vals = []
@@ -514,10 +528,38 @@ cdef class Tau:
             # additional arguments
             arg_vals.append(dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)]))
 
-        my_pool = Pool(self.J)
-        results = my_pool.map(tau_parallel_optimize, ((self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j]) for j in xrange(self.J)))
-        my_pool.close()
-        my_pool.join()
+        # for j in xrange(self.J):
+        #     # initialize optimization variables
+        #     xo = self.estim[j:j+1]
+        #
+        #     # set constraints for optimization variables
+        #     minj = 1./min([np.min(pi.value[j]), np.min(1-pi.value[j])])
+        #     xmin = np.array([minj])
+        #     G = np.diag(-1 * np.ones((1,), dtype=float))
+        #     h = -1*xmin.reshape(1,1)
+        #
+        #     # additional arguments
+        #     args = dict([('j',j),('G',G),('h',h),('data',data),('zeta',zeta),('pi',pi),('zetaestim',zetaestim)])
+        #
+        #     # call optimizer
+        #     try:
+        #         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
+        #     except ValueError:
+        #         xo = xmin+100*np.random.rand()
+        #         bounds = [(minj, None)]
+        #         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
+        #             args=(args,), bounds=bounds)
+        #         x_final = solution[0]
+            #
+            # self.estim[j:j+1] = x_final
+
+        results = []
+        queues = [Queue() for i in range(self.J)]
+        jobs   = [Process(target=tau_parallel_optimize, args=(self.estim[j:j+1], xmin_vals[j], minj_vals[j], arg_vals[j], queues[j])) for j in xrange(self.J)]
+
+        for job in jobs: job.start()
+        for q in queues: results.append(q.get())
+        for job in jobs: job.join()
 
         for j in range(self.J):
             self.estim[j:j+1] = results[j]
@@ -530,8 +572,7 @@ cdef class Tau:
             print "Inf in Tau"
             raise ValueError
 
-def tau_parallel_optimize(params):
-    xo, xmin, minj, args = params
+def tau_parallel_optimize(xo, xmin, minj, args, queue):
     try:
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args)
     except ValueError:
@@ -541,7 +582,7 @@ def tau_parallel_optimize(params):
             args=(args,), bounds=bounds)
         x_final = solution[0]
 
-    return x_final
+    queue.put(x_final)
 
 def rebuild_Tau(J, estim):
 
@@ -711,11 +752,9 @@ cdef class Alpha:
     Class to store and update (M-step) the parameter `alpha` in negative
     binomial part of the msCentipede model. There is a separate parameter
     for bound and unbound states, for each replicate.
-
     Arguments
         R : int
         number of replicate measurements
-
     """
 
     def __cinit__(self, long R):
@@ -841,11 +880,9 @@ cdef class Omega:
     Class to store and update (M-step) the parameter `omega` in negative
     binomial part of the msCentipede model. There is a separate parameter
     for bound and unbound states, for each replicate.
-
     Arguments
         R : int
         number of replicate measurements
-
     """
 
     def __cinit__(self, long R):
@@ -886,13 +923,11 @@ cdef class Beta:
     """
     Class to store and update (M-step) the parameter `beta` in the logistic
     function in the prior of the msCentipede model.
-
     Arguments
         scores : array
         an array of scores for each motif instance. these could include
         PWM score, conservation score, a measure of various histone
         modifications, outputs from other algorithms, etc.
-
     """
 
     def __cinit__(self, long S):
@@ -972,17 +1007,13 @@ def optimizer(np.ndarray[np.float64_t, ndim=1] xo, function_gradient, function_g
     in the package `cvxopt` to find optimal values for the relevant
     parameters, given subroutines that evaluate a function,
     its gradient, and hessian, this subroutine
-
     Arguments
         function : function object
         evaluates the function at the specified parameter values
-
         gradient : function object
         evaluates the gradient of the function
-
         hessian : function object
         evaluates the hessian of the function
-
     """
 
     def F(x=None, z=None):
@@ -1032,7 +1063,7 @@ def optimizer(np.ndarray[np.float64_t, ndim=1] xo, function_gradient, function_g
     V = xo.size
     x_init = xo.reshape(V,1)
 
-    print "Calling CVXOPT Optimizer"
+    print "call cvxopt solvers"
     # call the optimization subroutine in cvxopt
     if args.has_key('G'):
         # call a constrained nonlinear solver
@@ -1049,26 +1080,19 @@ def optimizer(np.ndarray[np.float64_t, ndim=1] xo, function_gradient, function_g
 cdef tuple compute_footprint_likelihood(Data data, Pi pi, Tau tau, Pi pi_null, Tau tau_null, str model):
     """Evaluates the likelihood function for the
     footprint part of the bound model and background model.
-
     Arguments
         data : Data
         transformed read count data
-
         pi : Pi
         estimate of mean footprint parameters at bound sites
-
         tau : Tau
         estimate of footprint heterogeneity at bound sites
-
         pi_null : Pi
         estimate of mean cleavage pattern at unbound sites
-
         tau_null : Tau or None
         estimate of cleavage heterogeneity at unbound sites
-
         model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
-
     """
 
     cdef long j, r
@@ -1109,43 +1133,31 @@ cdef double likelihood(Data data, np.ndarray[np.float64_t, ndim=2] scores, \
     Omega omega, Pi pi_null, Tau tau_null, str model):
     """Evaluates the likelihood function of the full
     model, given estimates of model parameters.
-
     Arguments
         data : Data
         transformed read count data
-
         scores : array
         an array of scores for each motif instance. these could include
         PWM score, conservation score, a measure of various histone
         modifications, outputs from other algorithms, etc.
-
         zeta : zeta
         expected value of factor binding state for each site.
-
         pi : Pi
         estimate of mean footprint parameters at bound sites
-
         tau : Tau
         estimate of footprint heterogeneity at bound sites
-
         alpha : Alpha
         estimate of negative binomial parameters for each replicate
-
         beta : Beta
         weights for various scores in the logistic function
-
         omega : Omega
         estimate of negative binomial parameters for each replicate
-
         pi_null : Pi
         estimate of mean cleavage pattern at unbound sites
-
         tau_null : Tau or None
         estimate of cleavage heterogeneity at unbound sites
-
         model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
-
     """
 
     cdef long j
@@ -1196,43 +1208,31 @@ cdef EM(Data data, np.ndarray[np.float64_t, ndim=2] scores, \
     Omega omega, Pi pi_null, Tau tau_null, str model):
     """This subroutine updates all model parameters once and computes an
     estimate of the posterior probability of binding.
-
     Arguments
         data : Data
         transformed read count data
-
         scores : array
         an array of scores for each motif instance. these could include
         PWM score, conservation score, a measure of various histone
         modifications, outputs from other algorithms, etc.
-
         zeta : zeta
         expected value of factor binding state for each site.
-
         pi : Pi
         estimate of mean footprint parameters at bound sites
-
         tau : Tau
         estimate of footprint heterogeneity at bound sites
-
         alpha : Alpha
         estimate of negative binomial parameters for each replicate
-
         beta : Beta
         weights for various scores in the logistic function
-
         omega : Omega
         estimate of negative binomial parameters for each replicate
-
         pi_null : Pi
         estimate of mean cleavage pattern at unbound sites
-
         tau_null : Tau or None
         estimate of cleavage heterogeneity at unbound sites
-
         model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
-
     """
 
     cdef double starttime
@@ -1269,43 +1269,31 @@ cdef square_EM(Data data, np.ndarray[np.float64_t, ndim=2] scores, \
     Zeta zeta, Pi pi, Tau tau, Alpha alpha, Beta beta, \
     Omega omega, Pi pi_null, Tau tau_null, str model):
     """Accelerated update of model parameters and posterior probability of binding.
-
     Arguments
         data : Data
         transformed read count data
-
         scores : array
         an array of scores for each motif instance. these could include
         PWM score, conservation score, a measure of various histone
         modifications, outputs from other algorithms, etc.
-
         zeta : zeta
         expected value of factor binding state for each site.
-
         pi : Pi
         estimate of mean footprint parameters at bound sites
-
         tau : Tau
         estimate of footprint heterogeneity at bound sites
-
         alpha : Alpha
         estimate of negative binomial parameters for each replicate
-
         beta : Beta
         weights for various scores in the logistic function
-
         omega : Omega
         estimate of negative binomial parameters for each replicate
-
         pi_null : Pi
         estimate of mean cleavage pattern at unbound sites
-
         tau_null : Tau or None
         estimate of cleavage heterogeneity at unbound sites
-
         model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
-
     """
 
     cdef long j, step
@@ -1374,38 +1362,30 @@ def estimate_optimal_model(np.ndarray[np.float64_t, ndim=3] reads, \
     """Learn the model parameters by running an EM algorithm till convergence.
     Return the optimal parameter estimates from a number of EM results starting
     from random restarts.
-
     Arguments
         reads : array
         array of read counts at each base in a genomic window,
         across motif instances and several measurement replicates.
-
         totalreads : array
         array of total read counts in a genomic window,
         across motif instances and several measurement replicates.
         the size of the genomic window can be different for
         `reads` and `totalreads`.
-
         scores : array
         an array of scores for each motif instance. these could include
         PWM score, conservation score, a measure of various histone
         modifications, outputs from other algorithms, etc.
-
         background : array
         a uniform, normalized array for a uniform background model.
         when sequencing reads from genomic DNA are available, this
         is an array of read counts at each base in a genomic window,
         across motif instances.
-
         model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
-
         restarts : int
         number of independent runs of model learning
-
         mintol : float
         convergence criterion
-
     """
 
     cdef long restart, iteration, err
@@ -1563,43 +1543,34 @@ def estimate_optimal_model(np.ndarray[np.float64_t, ndim=3] reads, \
 
 def infer_binding_posterior(reads, totalreads, scores, background, footprint, negbinparams, prior, model):
     """Infer posterior probability of factor binding, given optimal model parameters.
-
     Arguments
         reads : array
         array of read counts at each base in a genomic window,
         across motif instances and several measurement replicates.
-
         totalreads : array
         array of total read counts in a genomic window,
         across motif instances and several measurement replicates.
         the size of the genomic window can be different for
         `reads` and `totalreads`.
-
         scores : array
         an array of scores for each motif instance. these could include
         PWM score, conservation score, a measure of various histone
         modifications, outputs from other algorithms, etc.
-
         background : array
         a uniform, normalized array for a uniform background model.
         when sequencing reads from genomic DNA are available, this
         is an array of read counts at each base in a genomic window,
         across motif instances.
-
         footprint : tuple
         (Pi, Tau) instances
         estimate of footprint model parameters
-
         negbinparams : tuple
         (Alpha, Omega) instances
         estimate of negative binomial model parameters
-
         prior : Beta
         estimate of weights in logistic function in the prior
-
         model : string
         {msCentipede, msCentipede-flexbgmean, msCentipede-flexbg}
-
     """
 
     data = Data()
