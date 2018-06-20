@@ -373,7 +373,7 @@ class Pi:
 def pi_parallel_optimize(params):
     xo, args, J, queue = params
 
-    print("Calling optimizer for Pi")
+    # print("Calling optimizer for Pi")
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args, J)
 
     if np.isnan(my_x_final).any():
@@ -413,7 +413,7 @@ def pi_function_gradient(x, args, J_iter):
     terms containing `pi`, along with its gradient
     """
 
-    print("Calling Pi Function Gradient")
+    # print("Calling Pi Function Gradient")
     data = args['data']
     zeta = args['zeta']
     tau = args['tau']
@@ -469,7 +469,7 @@ def pi_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `pi`, along with its gradient and hessian
     """
-    print("Calling Pi Function Gradient Hessian")
+    # print("Calling Pi Function Gradient Hessian")
     data = args['data']
     zeta = args['zeta']
     tau = args['tau']
@@ -575,7 +575,7 @@ class Tau:
 def tau_parallel_optimize(params):
     xo, xmin, minj, args, J, queue = params
     try:
-        print("Calling optimizer for Tau")
+        # print("Calling optimizer for Tau")
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args, J)
     except ValueError:
         print("Optimizer for Tau failed, Calling SciPy")
@@ -620,7 +620,7 @@ def tau_function_gradient(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient.
     """
-    print("Calling Tau Function Gradient")
+    # print("Calling Tau Function Gradient")
     data = args['data']
     zeta = args['zeta']
     pi = args['pi']
@@ -720,6 +720,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     val_B = data.valueB[j]
     val_T = data.total[j]
 
+    print("Computing Gammas in Parallel")
     results = run_parallel(tau_gamma_calculations_hess,
                            ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
                            data.cores, data.R, J_iter, is_update=False)
@@ -737,6 +738,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     F       = -1. * (np.sum(zeta.estim[:,1] * func) + zetaestim * ffunc)
     Hf      = np.diag(hess)
 
+    print("Finished Tau Gradient Hessian")
     return F, Df, Hf
 
 class Alpha:
@@ -762,7 +764,7 @@ class Alpha:
     def update(self, zeta, omega):
         """Update the estimates of parameter `alpha` in the model.
         """
-        print("Updating Alpha")
+        # print("Updating Alpha")
         zetaestim = np.sum(zeta.estim,0)
         constant = zetaestim*nplog(omega.estim)
 
@@ -922,7 +924,7 @@ class Beta:
     def update(self, scores, zeta):
         """Update the estimates of parameter `beta` in the model.
         """
-        print("Updating Beta")
+        # print("Updating Beta")
         xo = self.estim.copy()
         args = dict([('scores',scores),('zeta',zeta)])
 
