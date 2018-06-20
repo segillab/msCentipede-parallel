@@ -690,7 +690,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient and hessian.
     """
-    print("Calling Tau Function Gradient Hessian")
+    # print("Calling Tau Function Gradient Hessian")
     data = args['data']
     zeta = args['zeta']
     pi = args['pi']
@@ -720,7 +720,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     val_B = data.valueB[j]
     val_T = data.total[j]
 
-    print("Computing Gammas in Parallel")
+    # print("Computing Gammas in Parallel")
     results = run_parallel(tau_gamma_calculations_hess,
                            ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
                            data.cores, data.R, J_iter, is_update=False)
@@ -738,7 +738,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     F       = -1. * (np.sum(zeta.estim[:,1] * func) + zetaestim * ffunc)
     Hf      = np.diag(hess)
 
-    print("Finished Tau Gradient Hessian")
+    # print("Finished Tau Gradient Hessian")
     return F, Df, Hf
 
 class Alpha:
@@ -1032,7 +1032,9 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
         else:
 
             # compute likelihood function, gradient, and hessian
+            print("Calling Hessian")
             f, Df, hess = function_gradient_hessian(xx, args, J)
+            print("Hessian Returned")
             # check for infs and nans in function and gradient
             if np.isnan(f) or np.isinf(f):
                 f = np.array([np.finfo('float32').max]).astype('float')
@@ -1043,6 +1045,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
             else:
                 Df = Df.reshape(1,xx.size)
             Hf = z[0] * hess
+            print("F is returning")
             return cvx.matrix(f), cvx.matrix(Df), cvx.matrix(Hf)
 
     # warm start for the optimization
