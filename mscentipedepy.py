@@ -14,7 +14,7 @@ from numba import jit
 # from multiprocessing import Pool
 
 # suppress optimizer output
-solvers.options['show_progress'] = True
+solvers.options['show_progress'] = False
 solvers.options['maxiters'] = 20
 # np.random.seed(10)
 
@@ -346,7 +346,7 @@ class Pi:
         zetaestim = zeta.estim[:,1].sum()
 
         # call optimizer
-
+        print("Updating Pi")
         print("Number of Optimizer calls: %s" % str(self.J))
 
         # Set up args
@@ -373,6 +373,7 @@ class Pi:
 def pi_parallel_optimize(params):
     xo, args, J, queue = params
 
+    print("Calling optimizer for Pi")
     my_x_final = optimizer(xo, pi_function_gradient, pi_function_gradient_hessian, args, J)
 
     if np.isnan(my_x_final).any():
@@ -412,6 +413,7 @@ def pi_function_gradient(x, args, J_iter):
     terms containing `pi`, along with its gradient
     """
 
+    print("Calling Pi Function Gradient")
     data = args['data']
     zeta = args['zeta']
     tau = args['tau']
@@ -467,7 +469,7 @@ def pi_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `pi`, along with its gradient and hessian
     """
-
+    print("Calling Pi Function Gradient Hessian")
     data = args['data']
     zeta = args['zeta']
     tau = args['tau']
@@ -534,9 +536,9 @@ class Tau:
     def update(self, data, zeta, pi):
         """Update the estimates of parameter `tau` (and `tau_o`) in the model.
         """
-
-        zetaestim = np.sum(zeta.estim[:,1])
+        print("Updating Tau")
         print("Number of Optimizer calls: %s" % str(self.J))
+        zetaestim = np.sum(zeta.estim[:,1])
 
         arg_vals = []
         minj_vals = []
@@ -573,8 +575,10 @@ class Tau:
 def tau_parallel_optimize(params):
     xo, xmin, minj, args, J, queue = params
     try:
+        print("Calling optimizer for Tau")
         x_final = optimizer(xo, tau_function_gradient, tau_function_gradient_hessian, args, J)
     except ValueError:
+        print("Optimizer for Tau failed, Calling SciPy")
         xo = xmin+100*np.random.rand()
         bounds = [(minj, None)]
         solution = spopt.fmin_l_bfgs_b(tau_function_gradient, xo, \
@@ -616,7 +620,7 @@ def tau_function_gradient(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient.
     """
-
+    print("Calling Tau Function Gradient")
     data = args['data']
     zeta = args['zeta']
     pi = args['pi']
@@ -686,7 +690,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     """Computes part of the likelihood function that has
     terms containing `tau`, and its gradient and hessian.
     """
-
+    print("Calling Tau Function Gradient Hessian")
     data = args['data']
     zeta = args['zeta']
     pi = args['pi']
@@ -758,7 +762,7 @@ class Alpha:
     def update(self, zeta, omega):
         """Update the estimates of parameter `alpha` in the model.
         """
-
+        print("Updating Alpha")
         zetaestim = np.sum(zeta.estim,0)
         constant = zetaestim*nplog(omega.estim)
 
@@ -918,7 +922,7 @@ class Beta:
     def update(self, scores, zeta):
         """Update the estimates of parameter `beta` in the model.
         """
-
+        print("Updating Beta")
         xo = self.estim.copy()
         args = dict([('scores',scores),('zeta',zeta)])
 
