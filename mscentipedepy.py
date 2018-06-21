@@ -429,8 +429,9 @@ def pi_function_gradient(x, args, J_iter):
     val_A = data.valueA[j]
     val_B = data.valueB[j]
 
-    results = run_parallel(pi_gamma_calculations,
-                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
+    # results = run_parallel(pi_gamma_calculations,
+    #                       ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
+    results = map(pi_gamma_calculations, ((val_A[r], val_B[r], alpha, beta, None) for r in range(data.R)))
 
     for r in range(data.R):
         this_result = results[r]
@@ -488,8 +489,9 @@ def pi_function_gradient_hessian(x, args, J_iter):
     val_A = data.valueA[j]
     val_B = data.valueB[j]
 
-    results = run_parallel(pi_gamma_calculations_hess,
-                          ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
+    # results = run_parallel(pi_gamma_calculations_hess,
+    #                       ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
+    results = map(pi_gamma_calculations_hess, ((val_A[r], val_B[r], alpha, beta, None) for r in range(data.R)))
 
     for r in range(data.R):
         this_result = results[r]
@@ -645,9 +647,10 @@ def tau_function_gradient(x, args, J_iter):
     val_B = data.valueB[j]
     val_T = data.total[j]
 
-    results = run_parallel(tau_gamma_calculations,
-                           ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
-                           data.cores, data.R, J_iter, is_update=False)
+    # results = run_parallel(tau_gamma_calculations,
+    #                        ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
+    #                        data.cores, data.R, J_iter, is_update=False)
+    results = map(tau_gamma_calculations, ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, None) for r in range(data.R)))
 
     for r in range(data.R):
         this_result = results[r]
@@ -721,9 +724,10 @@ def tau_function_gradient_hessian(x, args, J_iter):
     val_T = data.total[j]
 
     # print("Computing Gammas in Parallel")
-    results = run_parallel(tau_gamma_calculations_hess,
-                           ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
-                           data.cores, data.R, J_iter, is_update=False)
+    # results = run_parallel(tau_gamma_calculations_hess,
+    #                        ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
+    #                        data.cores, data.R, J_iter, is_update=False)
+    results = map(tau_gamma_calculations_hess, ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, None) for r in range(data.R)))
 
     for r in range(data.R):
         this_result = results[r]
@@ -1032,9 +1036,9 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
         else:
 
             # compute likelihood function, gradient, and hessian
-            print("Calling Hessian")
+            # print("Calling Hessian")
             f, Df, hess = function_gradient_hessian(xx, args, J)
-            print("Hessian Returned")
+            # print("Hessian Returned")
             # check for infs and nans in function and gradient
             if np.isnan(f) or np.isinf(f):
                 f = np.array([np.finfo('float32').max]).astype('float')
@@ -1045,7 +1049,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
             else:
                 Df = Df.reshape(1,xx.size)
             Hf = z[0] * hess
-            print("F is returning")
+            # print("F is returning")
             return cvx.matrix(f), cvx.matrix(Df), cvx.matrix(Hf)
 
     # warm start for the optimization
@@ -1053,6 +1057,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
     x_init = xo.reshape(V,1)
 
     print("Calling CVXOPT Optimizer")
+    starttime = time.time()
     # call the optimization subroutine in cvxopt
     if 'G' in args:
         # call a constrained nonlinear solver
@@ -1062,6 +1067,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
         solution = solvers.cp(F)
 
     x_final = np.array(solution['x']).ravel()
+    print("Optimizer Finished in {}".format(time.time() - starttime))
 
     return x_final
 
