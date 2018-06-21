@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import cvxopt as cvx
 from cvxopt import solvers
-from scipy.special import gammaln
+from scipy.special import gammaln, digamma
 import scipy
 import scipy.optimize as spopt
 import sys, time, math, pdb
@@ -34,47 +34,47 @@ def polygamma2(n, x, d):
     fac2 = (-1.0)**(n_arr+1) * scipy.special.gamma(n_arr+1.0) * scipy.special.zeta(n_arr+1, x_arr)
     return np.where(n_arr == 0, d, fac2)
 
-@jit
-def digamma3(x):
-    return np.vectorize(digamma2)(x)
-
-@jit
-def digamma2(x):
- #  Check the input.
- #
-  if ( x <= 0.0 ):
-    value = 0.0
-    return value
- #
- #  Initialize.
- #
-  value = 0.0
- #
- #  Use approximation for small argument.
- #
-  if ( x <= 0.000001 ):
-    euler_mascheroni = 0.57721566490153286060
-    value = - euler_mascheroni - 1.0 / x + 1.6449340668482264365 * x
-    return value
- #
- #  Reduce to DIGAMA(X + N).
- #
-  while ( x < 8.5 ):
-    value = value - 1.0 / x
-    x = x + 1.0
- #
- #  Use Stirling's (actually de Moivre's) expansion.
- #
-  r = 1.0 / x
-  value = value + np.log ( x ) - 0.5 * r
-  r = r * r
-  value = value \
-    - r * ( 1.0 / 12.0 \
-    - r * ( 1.0 / 120.0 \
-    - r * ( 1.0 / 252.0 \
-    - r * ( 1.0 / 240.0 \
-    - r * ( 1.0 / 132.0 ) ) ) ) )
-  return value
+# @jit
+# def digamma3(x):
+#     return np.vectorize(digamma2)(x)
+#
+# @jit
+# def digamma2(x):
+#  #  Check the input.
+#  #
+#   if ( x <= 0.0 ):
+#     value = 0.0
+#     return value
+#  #
+#  #  Initialize.
+#  #
+#   value = 0.0
+#  #
+#  #  Use approximation for small argument.
+#  #
+#   if ( x <= 0.000001 ):
+#     euler_mascheroni = 0.57721566490153286060
+#     value = - euler_mascheroni - 1.0 / x + 1.6449340668482264365 * x
+#     return value
+#  #
+#  #  Reduce to DIGAMA(X + N).
+#  #
+#   while ( x < 8.5 ):
+#     value = value - 1.0 / x
+#     x = x + 1.0
+#  #
+#  #  Use Stirling's (actually de Moivre's) expansion.
+#  #
+#   r = 1.0 / x
+#   value = value + np.log ( x ) - 0.5 * r
+#   r = r * r
+#   value = value \
+#     - r * ( 1.0 / 12.0 \
+#     - r * ( 1.0 / 120.0 \
+#     - r * ( 1.0 / 252.0 \
+#     - r * ( 1.0 / 240.0 \
+#     - r * ( 1.0 / 132.0 ) ) ) ) )
+#   return value
 
 def nplog(x):
     """Compute the natural logarithm, handling very
@@ -400,7 +400,7 @@ def pi_gamma_calculations(params):
     data_alpha = val_A + alpha
     data_beta  = val_B + beta
     new_func = gammaln(data_alpha) + gammaln(data_beta)
-    new_df   = digamma3(data_alpha) - digamma3(data_beta)
+    new_df   = digamma(data_alpha) - digamma(data_beta)
 
     if queue is not None:
         queue.put((new_func, new_df))
@@ -439,7 +439,7 @@ def pi_function_gradient(x, args, J_iter):
 
     F  = np.sum(func,1) - np.sum(gammaln(alpha) + gammaln(beta)) * data.R
     Df = tau.estim[j] * (np.sum(zeta.estim[:,1:] * df,0) \
-        - zetaestim * (digamma3(alpha) - digamma3(beta)) * data.R)
+        - zetaestim * (digamma(alpha) - digamma(beta)) * data.R)
 
     f  = -1. * np.sum(zeta.estim[:,1] * F)
     Df = -1. * Df
@@ -453,8 +453,8 @@ def pi_gamma_calculations_hess(params):
 
     new_func = gammaln(data_alpha) + gammaln(data_beta)
 
-    dg_tmp_a = digamma3(data_alpha)
-    dg_tmp_b = digamma3(data_beta)
+    dg_tmp_a = digamma(data_alpha)
+    dg_tmp_b = digamma(data_beta)
 
     new_df = dg_tmp_a - dg_tmp_b
     new_hf = polygamma2(1, data_alpha, dg_tmp_a) + polygamma2(1, data_beta, dg_tmp_b)
@@ -499,8 +499,8 @@ def pi_function_gradient_hessian(x, args, J_iter):
 
     F = np.sum(func,1) - np.sum(gammaln(alpha) + gammaln(beta)) * data.R
 
-    dg_alpha = digamma3(alpha)
-    dg_beta = digamma3(beta)
+    dg_alpha = digamma(alpha)
+    dg_beta = digamma(beta)
 
     Df = tau.estim[j] * (np.sum(zeta.estim[:,1:] * df,0) \
         - zetaestim * (dg_alpha - dg_beta) * data.R)
@@ -607,9 +607,9 @@ def tau_gamma_calculations(params):
              + np.sum(gammaln(data_beta),1) \
              - np.sum(gammaln(data_x),1)
 
-    new_df   = np.sum(pi_val*digamma3(data_alpha),1) \
-             + np.sum((1-pi_val)*digamma3(data_beta),1) \
-             - np.sum(digamma3(data_x),1)
+    new_df   = np.sum(pi_val*digamma(data_alpha),1) \
+             + np.sum((1-pi_val)*digamma(data_beta),1) \
+             - np.sum(digamma(data_x),1)
 
     if queue is not None:
         queue.put((new_func, new_df))
@@ -635,7 +635,7 @@ def tau_function_gradient(x, args, J_iter):
     alpha = pi_val * x
     beta = (1 - pi_val) * x
     ffunc = ffunc + data.R * np.sum(gammaln(x) - gammaln(alpha) - gammaln(beta))
-    dff = data.R * np.sum(digamma3(x) - pi_val * digamma3(alpha) - (1 - pi_val) * digamma3(beta))
+    dff = data.R * np.sum(digamma(x) - pi_val * digamma(alpha) - (1 - pi_val) * digamma(beta))
     df = np.zeros((zeta.N,), dtype=float)
 
     # loop over replicate
@@ -669,9 +669,9 @@ def tau_gamma_calculations_hess(params):
              + np.sum(gammaln(data_beta),1) \
              - np.sum(gammaln(data_x),1)
 
-    dg_data_x     = digamma3(data_x)
-    dg_data_alpha = digamma3(data_alpha)
-    dg_data_beta  = digamma3(data_beta)
+    dg_data_x     = digamma(data_x)
+    dg_data_alpha = digamma(data_alpha)
+    dg_data_beta  = digamma(data_beta)
 
     new_df = np.sum(pi_val*dg_data_alpha,1) \
            + np.sum((1-pi_val)*dg_data_beta,1) \
@@ -707,9 +707,9 @@ def tau_function_gradient_hessian(x, args, J_iter):
     alpha = pi_val * x
     beta = (1 - pi_val) * x
     ffunc = ffunc + data.R * np.sum(gammaln(x) - gammaln(alpha) - gammaln(beta))
-    dg_x = digamma3(x)
-    dg_alpha = digamma3(alpha)
-    dg_beta = digamma3(beta)
+    dg_x = digamma(x)
+    dg_alpha = digamma(alpha)
+    dg_beta = digamma(beta)
     dff = data.R * np.sum(dg_x - pi_val * dg_alpha - (1 - pi_val) * dg_beta)
     hff = data.R * np.sum(polygamma2(1, x, dg_x) - pi_val**2 * polygamma2(1, alpha, dg_alpha) \
         - (1-pi_val)**2 * polygamma2(1, beta, dg_beta))
@@ -813,8 +813,8 @@ def alpha_function_gradient(x, args, J_iter):
         xzeta = zeta.total[:,r:r+1] + x[2*r:2*r+2]
         func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
                     - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
-        df[2*r:2*r+2] = np.sum(digamma3(xzeta) * zeta.estim, 0) \
-            - digamma3(x[2*r:2*r+2]) * zetaestim + constant[r]
+        df[2*r:2*r+2] = np.sum(digamma(xzeta) * zeta.estim, 0) \
+            - digamma(x[2*r:2*r+2]) * zetaestim + constant[r]
 
     f  = -1.*func
     Df = -1. * df
@@ -841,8 +841,8 @@ def alpha_function_gradient_hessian(x, args, J_iter):
         func = func + np.sum(np.sum(gammaln(xzeta) * zeta.estim, 0) \
             - gammaln(x[2*r:2*r+2]) * zetaestim + constant[r] * x[2*r:2*r+2])
 
-        dg_xzeta = digamma3(xzeta)
-        dg_weird = digamma3(x[2*r:2*r+2])
+        dg_xzeta = digamma(xzeta)
+        dg_weird = digamma(x[2*r:2*r+2])
 
         df[2*r:2*r+2] = np.sum(dg_xzeta * zeta.estim, 0) \
             - dg_weird * zetaestim + constant[r]
