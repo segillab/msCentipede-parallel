@@ -431,7 +431,7 @@ def pi_function_gradient(x, args, J_iter):
 
     # results = run_parallel(pi_gamma_calculations,
     #                       ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
-    results = map(pi_gamma_calculations, ((val_A[r], val_B[r], alpha, beta, None) for r in range(data.R)))
+    results = [pi_gamma_calculations((val_A[r], val_B[r], alpha, beta, None)) for r in range(data.R)]
 
     for r in range(data.R):
         this_result = results[r]
@@ -491,7 +491,7 @@ def pi_function_gradient_hessian(x, args, J_iter):
 
     # results = run_parallel(pi_gamma_calculations_hess,
     #                       ((val_A[r], val_B[r], alpha, beta) for r in range(data.R)), data.cores, data.R, J_iter, is_update=False)
-    results = map(pi_gamma_calculations_hess, ((val_A[r], val_B[r], alpha, beta, None) for r in range(data.R)))
+    results = [pi_gamma_calculations_hess((val_A[r], val_B[r], alpha, beta, None)) for r in range(data.R)]
 
     for r in range(data.R):
         this_result = results[r]
@@ -650,7 +650,7 @@ def tau_function_gradient(x, args, J_iter):
     # results = run_parallel(tau_gamma_calculations,
     #                        ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
     #                        data.cores, data.R, J_iter, is_update=False)
-    results = map(tau_gamma_calculations, ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, None) for r in range(data.R)))
+    results = [tau_gamma_calculations((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, None)) for r in range(data.R)]
 
     for r in range(data.R):
         this_result = results[r]
@@ -727,7 +727,7 @@ def tau_function_gradient_hessian(x, args, J_iter):
     # results = run_parallel(tau_gamma_calculations_hess,
     #                        ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val) for r in range(data.R)),
     #                        data.cores, data.R, J_iter, is_update=False)
-    results = map(tau_gamma_calculations_hess, ((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, None) for r in range(data.R)))
+    results = [tau_gamma_calculations_hess((val_A[r], val_B[r], val_T[r], alpha, beta, x, pi_val, None)) for r in range(data.R)]
 
     for r in range(data.R):
         this_result = results[r]
@@ -1067,7 +1067,7 @@ def optimizer(xo, function_gradient, function_gradient_hessian, args, J):
         solution = solvers.cp(F)
 
     x_final = np.array(solution['x']).ravel()
-    print("Optimizer Finished in {}".format(time.time() - starttime))
+    print("\tOptimizer Finished in {} secs".format(time.time() - starttime))
 
     return x_final
 
